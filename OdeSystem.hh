@@ -1,0 +1,189 @@
+#ifndef ODESYSTEM
+#define ODESYSTEM
+#include <iostream>
+#include <iomanip>
+#include <ads/timer.h>
+#include <map>
+#include <vector>
+#include <Eigen/Dense>
+#include "netcdf.hh"
+#include "tools.hh"
+#include "Boundary.hh"
+#include "include.hh"
+
+struct Attribute{
+    Attribute(std::string _name, int _type, Boundary _bc):
+        name(_name), type(_type), bc(_bc){}
+    std::string name;
+    int type;
+    Boundary bc;
+};
+
+class OdeSystem{
+public:
+	OdeSystem(std::string control_file){
+		timer.tic();
+		load_domain(control_file);
+		load_parameter(control_file);
+		ncfile.current = 0;
+		ncfile.fname = "dynamics.nc";
+        load_nc_file();
+	}
+
+	friend std::ostream& operator<< (std::ostream &os, const OdeSystem &other){
+		os << "Name : " << other.name << std::endl
+			<< "Number of Grids in X: " << other.nrows << std::endl
+			<< "Number of Grids in Y: " << other.ncols << std::endl
+			<< "Total length in X: " << other.xlen / 1000. << " km" << std::endl
+			<< "Total length in Y: " << other.ylen / 1000. << " km" << std::endl
+			<< "Grid size in X: " << other.dx / 1000. << " km" << std::endl
+			<< "Grid size in Y: " << other.dy / 1000. << " km" <<std::endl
+			<< "Time start: " << other.tbegin << " s" << std::endl
+			<< "Time end: " << other.tend << " s" << std::endl
+			<< "Time step: " << other.dt << " s" << std::endl
+			<< "Times per frame: " << other.frame << std::endl;
+		os << "Boundary conditions: " << std::endl;
+		for (size_t i = 0; i < other.vattr.size(); i++){
+			os << "--- " << other.vattr[i].name << " ---" << std::endl;
+			os << other.vattr[i].bc << std::endl;
+		}
+		os << "Parameters: " << std::endl;
+		for (std::map<std::string, float>::const_iterator it = other.sp.begin(); 
+				it != other.sp.end(); it++) 
+			os << it->first << " = " << it->second << std::endl;
+		return os;
+	}
+
+	/* define differential equations */
+	virtual void operator() (const StateType &, StateType &, float t) = 0;
+	virtual void update(float){}
+    virtual void set_boundary_conditions(){}
+	virtual void observe(float t){
+		long ostep = std::floor(t / dt + 0.5);
+		if (ostep % frame != 0) return;
+		ncWrite(ostep * dt);
+		std::cout 
+			<< std::setw(8) << std::left
+			<< ostep
+			<< std::setw(15) << std::left << std::setprecision(5)
+			<< ostep * dt
+			<< std::setw(15) << std::left << std::setprecision(5)
+			<< timer.toc() << std::endl;
+	}
+	void init_variables(){
+		for (size_t i = 0; i < vattr.size(); i++) 
+            var.push_back(gp[vattr[i].name]);
+	}
+
+	int rows(){ return nrows; }
+	int cols(){ return ncols; }
+	float start(){ return tbegin; }
+	float end(){ return tend; }
+	float step(){ return dt; }
+
+protected:
+	/* Read time and domain */
+	void load_domain(std::string file){
+		std::ifstream infile;
+		std::string str;
+
+		infile.open(file.c_str(), std::ios::in);
+		if (!infile) no_exist(file);
+		else{
+			infile >> str; getline(infile, name);
+			locate(infile, "Time and domain");
+			infile
+				>> str >> nrows
+				>> str >> ncols
+				>> str >> xlen
+				>> str >> ylen
+				>> str >> tbegin
+				>> str >> tend
+				>> str >> dt
+				>> str >> frame;
+			infile.close();
+			dx = xlen / (nrows - 1);
+			dy = ylen / (ncols - 1);
+		}
+	}
+
+	/* Read Parameter */
+	void load_parameter(std::string file){
+		std::ifstream infile;
+		Qstring str;
+		float value;
+
+		infile.open(file.c_str(), std::ios::in);
+		if (!infile) no_exist(file);
+		else {
+			locate(infile, "Parameters");
+			infile >> str >> value;
+			while (!str.empty()){
+				sp[str] = value;
+				infile >> str >> value; 
+			} 
+			infile.close();
+		}
+	}
+
+	void load_nc_file(){
+		NcFile dataFile(ncfile.fname.c_str(), NcFile::ReadOnly);
+		if (!dataFile.is_valid()){
+			std::cerr << "Cannot open file: " << ncfile.fname << std::endl;
+			exit(-1);
+		}
+		for (size_t i = 0; i < dataFile.num_vars(); i++){
+			NcVar *data = dataFile.get_var(i);
+			Grid temp;
+			long *edges = data->edges();
+			switch (data->num_dims()){
+				case 1:
+					temp.resize(1, edges[0]);
+					data->get(&temp(0, 0), edges[0]);
+					break;
+				case 2:
+					temp.resize(edges[1], edges[0]);
+					data->get(&temp(0, 0), edges[0], edges[1]);
+					break;
+				case 3:
+					temp.resize(edges[2], edges[1]);
+					data->set_cur(0, 0, 0);
+					data->get(&temp(0, 0), 1, edges[1], edges[2]);
+					break;
+			}
+			gp[data->name()] = temp;
+		}
+	}
+
+	virtual void ncWrite(float t){
+		//std::cout << "Now writing..." << std::endl;
+		NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
+		for (size_t i = 0; i < vattr.size(); i++)
+			dataFile.get_var(vattr[i].name.c_str())->put_rec(&var[i](0, 0), ncfile.current);
+		dataFile.get_var("time")->put_rec(&t, ncfile.current);
+		ncfile.current++;
+	}
+    
+
+    Grid _zero(int n){return(Eigen::ArrayXf::Zero(n));}
+    Grid _zero(int n, int m){return(Eigen::ArrayXXf::Zero(n, m));}
+    Grid _one(int n, int m){return(Eigen::ArrayXXf::Zero(n, m) + 1.);}
+
+protected:
+	std::string name;
+	int nrows, ncols;
+	float xlen, ylen;
+	float dx, dy;
+	float tbegin, tend, dt;
+	int frame;
+	Ncconfig ncfile;
+    std::vector<Attribute> vattr;
+	std::map<std::string, float> sp; // scalar parameter
+	std::map<std::string, Grid> gp; // grid parameter
+	ads::Timer timer;
+
+public:
+	StateType var;
+};
+
+#endif
