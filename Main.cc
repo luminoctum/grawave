@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <boost/numeric/odeint.hpp>
-#include "ColumnHeating.hh"
+#include "2Dcartesian.hh"
 
 using namespace std;
 using namespace boost::numeric::odeint;
@@ -9,11 +9,10 @@ using namespace boost::numeric::odeint;
 int main(){
 	/* system instance
      * */
-	ColumnHeating sys("control.in");
+	2Dcartesian sys("control.in");
 	//ShallowWater sys("control.in"); 
     sys.set_boundary_conditions();
 	sys.init_variables();
-    sys.set_NH3_mixr(4.E-4);
 	cout << sys
 		<< setw(8) << left << "steps:" 
 		<< setw(15) << left << "Model Time(s):"
