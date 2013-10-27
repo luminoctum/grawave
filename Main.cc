@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <boost/numeric/odeint.hpp>
-#include "2Dcartesian.hh"
+#include "Cartesian2d.hh"
 
 using namespace std;
 using namespace boost::numeric::odeint;
@@ -9,7 +9,7 @@ using namespace boost::numeric::odeint;
 int main(){
 	/* system instance
      * */
-	2Dcartesian sys("control.in");
+	Cartesian2d sys("control.in");
 	//ShallowWater sys("control.in"); 
     sys.set_boundary_conditions();
 	sys.init_variables();

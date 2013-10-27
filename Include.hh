@@ -14,6 +14,12 @@ typedef std::vector<Grid> StateType;
         std::cerr << "variable \"" << AVAR << "\" out of range ..."<< std::endl; \
         std::cerr << "*****************" << std::endl; \
         assert(0) 
+#define ASSERT_DIMENSION_MISMATCH(AVAR1, AVAR2) \
+        std::cerr << "***** ERROR *****" << std::endl; \
+        std::cerr << "dimension mismatch for variable \"" << AVAR1 << "\" and \"" << AVAR2 << "\" ..."<< std::endl; \
+        std::cerr << "*****************" << std::endl; \
+        assert(0) 
+
 /* define constants */
 #define ZERO1(n) Eigen::ArrayXf::Zero(n)
 #define ZERO2(n,m) Eigen::ArrayXXf::Zero(n,m)
