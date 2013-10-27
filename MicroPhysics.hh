@@ -3,8 +3,8 @@
 #include <map>
 #include <vector>
 #include <cmath>
-#include "include.hh"
-#include "tools.hh"
+#include "Include.hh"
+#include "Tools.hh"
 
 class Species{
 public:
@@ -21,9 +21,9 @@ public:
         std::string name;
         //file_thermo_tbl = "thermodynamics.tbl";
         infile.open("thermodynamics.tbl", std::ios::in);
-        if (!infile) no_exist("thermodynamics.tbl");
+        if (!infile) {ASSERT_FILE_NOT_FOUND("thermodynamics.tbl");}
         else {
-            locate(infile, "Saturation vapor pressure");
+            sclocate(infile, "Saturation vapor pressure");
             getline(infile, name);
             while(!infile.eof()){
                 infile >> name >> as >> bs >> al >> bl

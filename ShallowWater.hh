@@ -60,14 +60,14 @@ public:
 protected:
     void set_boundary_conditions(){
         Boundary phi, uwind, vwind, tracer;
-        phi.left = phi.right << Neumann | _zero(1, ncols);
-        phi.bottom = phi.top << Neumann | _zero(nrows, 1);
-        uwind.left = uwind.right << Dirichlet | _zero(1, ncols);
-        uwind.bottom = uwind.top << Neumann | _zero(nrows + 1, 1);
-        vwind.left = vwind.right << Neumann | _zero(1, ncols + 1);
-        vwind.bottom = vwind.top << Dirichlet | _zero(nrows, 1);
-        tracer.left = tracer.right << Neumann | _zero(1, ncols);
-        tracer.bottom = tracer.top << Neumann | _zero(nrows, 1);
+        phi.left = phi.right << Neumann | ZERO2(1, ncols);
+        phi.bottom = phi.top << Neumann | ZERO2(nrows, 1);
+        uwind.left = uwind.right << Dirichlet | ZERO2(1, ncols);
+        uwind.bottom = uwind.top << Neumann | ZERO2(nrows + 1, 1);
+        vwind.left = vwind.right << Neumann | ZERO2(1, ncols + 1);
+        vwind.bottom = vwind.top << Dirichlet | ZERO2(nrows, 1);
+        tracer.left = tracer.right << Neumann | ZERO2(1, ncols);
+        tracer.bottom = tracer.top << Neumann | ZERO2(nrows, 1);
 
         vattr.emplace_back("phi", 0, phi);
         vattr.emplace_back("uwind", 1, uwind);
@@ -77,23 +77,23 @@ protected:
     void halo_update(StateType &dvar){
         for (size_t i = 0; i < dvar.size(); i++){
             if (dvar[i].size() == 0)
-                dvar[i] = _zero(var[i].rows(), var[i].cols());
+                dvar[i] = ZERO2(var[i].rows(), var[i].cols());
             if (dvar[i].rows() != var[i].rows() || dvar[i].cols() != var[i].cols()){
                 // raise error
                 std::cerr << "Error 1" << std::endl;
                 exit(-1);
             }
             if (vattr[i].bc.left.type == Dirichlet)
-                dvar[i].row(0) = _zero(1, var[i].cols());
+                dvar[i].row(0) = ZERO2(1, var[i].cols());
             if (vattr[i].bc.right.type == Dirichlet)
-                dvar[i].row(var[i].rows() - 1) = _zero(1, var[i].cols());
+                dvar[i].row(var[i].rows() - 1) = ZERO2(1, var[i].cols());
             if (vattr[i].bc.bottom.type == Dirichlet)
-                dvar[i].col(0) = _zero(var[i].rows(), 1);
+                dvar[i].col(0) = ZERO2(var[i].rows(), 1);
             if (vattr[i].bc.top.type == Dirichlet)
-                dvar[i].col(var[i].cols() - 1) = _zero(var[i].rows(), 1);
+                dvar[i].col(var[i].cols() - 1) = ZERO2(var[i].rows(), 1);
         }
     }
-    void ncWrite(float t){
+    void ncwrite(float t){
         //std::cout << "Now writing..." << std::endl;
         NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
         for (size_t i = 0; i < vattr.size(); i++){

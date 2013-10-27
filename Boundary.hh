@@ -1,6 +1,6 @@
 #ifndef BOUNDARY
 #define BOUNDARY
-#include "include.hh"
+#include "Include.hh"
 
 enum Type{Neumann, Dirichlet, Periodic, Undefined};
 struct Edge{

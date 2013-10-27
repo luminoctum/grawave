@@ -7,9 +7,9 @@
 #include <vector>
 #include <Eigen/Dense>
 #include "netcdf.hh"
-#include "tools.hh"
+#include "Tools.hh"
 #include "Boundary.hh"
-#include "include.hh"
+#include "Include.hh"
 
 struct Attribute{
     Attribute(std::string _name, int _type, Boundary _bc):
@@ -17,6 +17,11 @@ struct Attribute{
     std::string name;
     int type;
     Boundary bc;
+};
+
+struct ncconfig{
+    std::string fname;
+    long current;
 };
 
 class OdeSystem{
@@ -61,7 +66,7 @@ public:
 	virtual void observe(float t){
 		long ostep = std::floor(t / dt + 0.5);
 		if (ostep % frame != 0) return;
-		ncWrite(ostep * dt);
+		ncwrite(ostep * dt);
 		std::cout 
 			<< std::setw(8) << std::left
 			<< ostep
@@ -88,10 +93,10 @@ protected:
 		std::string str;
 
 		infile.open(file.c_str(), std::ios::in);
-		if (!infile) no_exist(file);
+		if (!infile) {ASSERT_FILE_NOT_FOUND(file);}
 		else{
 			infile >> str; getline(infile, name);
-			locate(infile, "Time and domain");
+			sclocate(infile, "Time and domain");
 			infile
 				>> str >> nrows
 				>> str >> ncols
@@ -110,13 +115,13 @@ protected:
 	/* Read Parameter */
 	void load_parameter(std::string file){
 		std::ifstream infile;
-		Qstring str;
+		qstring str;
 		float value;
 
 		infile.open(file.c_str(), std::ios::in);
-		if (!infile) no_exist(file);
+		if (!infile) {ASSERT_FILE_NOT_FOUND(file);}
 		else {
-			locate(infile, "Parameters");
+			sclocate(infile, "Parameters");
 			infile >> str >> value;
 			while (!str.empty()){
 				sp[str] = value;
@@ -126,6 +131,7 @@ protected:
 		}
 	}
 
+    /* Read initial condition stored in nc file */
 	void load_nc_file(){
 		NcFile dataFile(ncfile.fname.c_str(), NcFile::ReadOnly);
 		if (!dataFile.is_valid()){
@@ -153,9 +159,10 @@ protected:
 			}
 			gp[data->name()] = temp;
 		}
-	}
+	} 
 
-	virtual void ncWrite(float t){
+    /* write to nc file */
+	virtual void ncwrite(float t){
 		//std::cout << "Now writing..." << std::endl;
 		NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
 		for (size_t i = 0; i < vattr.size(); i++)
@@ -164,11 +171,6 @@ protected:
 		ncfile.current++;
 	}
     
-
-    Grid _zero(int n){return(Eigen::ArrayXf::Zero(n));}
-    Grid _zero(int n, int m){return(Eigen::ArrayXXf::Zero(n, m));}
-    Grid _one(int n, int m){return(Eigen::ArrayXXf::Zero(n, m) + 1.);}
-
 protected:
 	std::string name;
 	int nrows, ncols;
@@ -176,7 +178,7 @@ protected:
 	float dx, dy;
 	float tbegin, tend, dt;
 	int frame;
-	Ncconfig ncfile;
+	ncconfig ncfile;
     std::vector<Attribute> vattr;
 	std::map<std::string, float> sp; // scalar parameter
 	std::map<std::string, Grid> gp; // grid parameter

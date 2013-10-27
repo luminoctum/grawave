@@ -1,7 +1,7 @@
 #ifndef FINITEMethod
 #define FINITEMethod
 
-#include "include.hh"
+#include "Include.hh"
 #define MAXDIM 500
 #define Min(a, b, c) ( a < b ? (a < c ? a : c) : (b < c ? b : c) )
 #define D_order_1(var, i) ( var(i + 1) - var(i) )
@@ -85,7 +85,7 @@ public:
                 BUFFER.col(i) = D_order_2(var.col, i);
             BUFFER.col(var.cols() - 1) = (D_bnd_high(var.col(var.cols() - 1), varb.top)
                     + D_order_1_m(var.col, var.cols() - 1)) / 2.;
-        } else {ERROR_1;}
+        } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
         return BUFFER;
     }
 #undef BUFFER
@@ -109,7 +109,7 @@ public:
                 Buffer.block(0,0,nrows,ncols+1).col(i + 1) = D_order_1(var.col, i);
             Buffer.block(0,0,nrows,ncols+1).col(ncols) = D_bnd_high(var.col(ncols - 1), varb.top);
             return Buffer.block(0,0,nrows,ncols+1);
-        } else{ERROR_1;}
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
     }
     Grid operator() (const Grid &var, int axis){
         int nrows = var.rows();
@@ -122,7 +122,7 @@ public:
             for (size_t i = 0; i < ncols - 1; i++)
                 Buffer.block(0,0,nrows,ncols-1).col(i) = D_order_1(var.col, i);
             return Buffer.block(0,0,nrows,ncols-1);
-        } else{ERROR_1;}
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
     }
 };
 
@@ -146,7 +146,7 @@ public:
             for (size_t i = 1; i < ncols - 1; i++)
                 BUFFER.col(i) = Nabla(2*Min(i, ncols-1-i, order/2), var.col, i);
             BUFFER.col(ncols - 1) = Grid::Zero(nrows, 1);
-        } else{ERROR_1;}
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
         return BUFFER;
     }
 #undef BUFFER
@@ -167,7 +167,7 @@ public:
             BUFFER.col(ncols) = varb.top.value;
             for (int i = ncols; i > 0; i--)
                 BUFFER.col(i - 1) = BUFFER.col(i) + var.col(i - 1);
-        } else{ERROR_1;}   
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}   
         return BUFFER;
     }
 #undef BUFFER
@@ -195,7 +195,7 @@ public:
                 Buffer.block(0,i,nrows,1) = 
                     HalfPointAvg(2*Min(i+1, ncols-1-i, order/2), var.col, i);
             return Buffer.block(0,0,nrows,ncols-1);
-        } else{ERROR_1;}
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
     }
     Grid operator() (const Grid &var, const Boundary &varb, int axis){
         int nrows = var.rows();
@@ -210,7 +210,7 @@ public:
             Buffer.block(0,0,nrows,1) = HalfPointLow(var.col(0), varb.bottom);
             Buffer.block(0,ncols,nrows,1) = HalfPointHigh(var.col(ncols - 1), varb.top);
             return Buffer.block(0,0,nrows,ncols+1);
-        } else{ERROR_1;}
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
     }
     Grid operator() (const Grid &wind, const Grid &var, int axis){
         int nrows = var.rows();
@@ -231,7 +231,7 @@ public:
                     HalfPointAvg(2*Min(i+1, ncols-1-i, order/2), var.col, i) +
                     Buffer2.col(i) * HalfPointAvg(2*Min(i+1, ncols-1-i, order/2) - 1, var.col, i);
             return Buffer.block(0,0,nrows,ncols-1);
-        } else{ERROR_1;}
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
     }
     Grid operator() (const Grid &wind, const Grid &var, const Boundary &varb, int axis){
         int nrows = var.rows();
@@ -258,7 +258,7 @@ public:
                 (wind.col(ncols) > 0).select(ones.block(0,0,nrows,1), - ones.block(0,0,nrows,1)) 
                 * 0.5 * (var.col(ncols-1) - BndHigh(var.col(ncols-1), varb.top));
             return Buffer.block(0,0,nrows,ncols+1);
-        } else{ERROR_1;}
+        } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
     }
 };
 

@@ -22,7 +22,7 @@ public:
     void operator() (const StateType &var, StateType &dvar, float){
     #define rotate90(var, i, j, k) ( interp(interp(var[i], vattr[i].bc, j), k) )
         for (size_t i = 0; i < dvar.size(); i++) 
-            dvar[i] = _zero(var[i].rows(), var[i].cols());
+            dvar[i] = ZERO2(var[i].rows(), var[i].cols());
 
         wwind = integ(diff(var[0], 1), vattr[5].bc, -2) * dy / dx;
         phi = integ(var[2] * gp["T_"] / T0 * (1 + var[3]) / (1 + eps * gp["eta_"]), 
@@ -63,25 +63,25 @@ public:
     void set_boundary_conditions(){
         Boundary uwind, wwind, buoyancy, etaH2O, etaNH3, phi, RH;
 
-        uwind.left = uwind.right << Dirichlet | _zero(1, ncols);
-        uwind.bottom = uwind.top << Neumann | _zero(nrows + 1, 1);
-        wwind.left << Neumann | _zero(1, ncols + 1);
-        wwind.right << Dirichlet | _zero(1, ncols + 1);
-        wwind.bottom << Neumann | _zero(nrows, 1);
-        wwind.top << Dirichlet | _zero(nrows, 1);
-        buoyancy.left << Neumann | _zero(1, ncols);
-        buoyancy.right << Dirichlet | _zero(1, ncols);
-        buoyancy.bottom << Neumann | _zero(nrows, 1);
-        buoyancy.top << Dirichlet | _zero(nrows, 1);
-        etaH2O.left = etaH2O.right << Neumann | _zero(1, ncols);
-        etaH2O.bottom << Dirichlet | gp["eta_H2O"].col(0).maxCoeff() + _zero(nrows, 1);
-        etaH2O.top << Neumann | _zero(nrows, 1);
-        etaNH3.left = etaNH3.right << Neumann | _zero(1, ncols);
-        etaNH3.bottom = etaNH3.top << Neumann | _zero(nrows, 1);
-        phi.left << Neumann | _zero(1, ncols + 1);
-        phi.right << Dirichlet | _zero(1, ncols + 1);
-        phi.bottom << Dirichlet | _zero(nrows, 1);
-        phi.top << Neumann | _zero(nrows, 1);
+        uwind.left = uwind.right << Dirichlet | ZERO2(1, ncols);
+        uwind.bottom = uwind.top << Neumann | ZERO2(nrows + 1, 1);
+        wwind.left << Neumann | ZERO2(1, ncols + 1);
+        wwind.right << Dirichlet | ZERO2(1, ncols + 1);
+        wwind.bottom << Neumann | ZERO2(nrows, 1);
+        wwind.top << Dirichlet | ZERO2(nrows, 1);
+        buoyancy.left << Neumann | ZERO2(1, ncols);
+        buoyancy.right << Dirichlet | ZERO2(1, ncols);
+        buoyancy.bottom << Neumann | ZERO2(nrows, 1);
+        buoyancy.top << Dirichlet | ZERO2(nrows, 1);
+        etaH2O.left = etaH2O.right << Neumann | ZERO2(1, ncols);
+        etaH2O.bottom << Dirichlet | gp["eta_H2O"].col(0).maxCoeff() + ZERO2(nrows, 1);
+        etaH2O.top << Neumann | ZERO2(nrows, 1);
+        etaNH3.left = etaNH3.right << Neumann | ZERO2(1, ncols);
+        etaNH3.bottom = etaNH3.top << Neumann | ZERO2(nrows, 1);
+        phi.left << Neumann | ZERO2(1, ncols + 1);
+        phi.right << Dirichlet | ZERO2(1, ncols + 1);
+        phi.bottom << Dirichlet | ZERO2(nrows, 1);
+        phi.top << Neumann | ZERO2(nrows, 1);
 
         vattr.emplace_back("uwind",     1,  uwind);
         vattr.emplace_back("vwind",     1,  uwind);

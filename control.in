@@ -1,0 +1,17 @@
+Experiment: column heating
+
+// Time and domain
+num_of_grids_in_x   64      
+num_of_grids_in_y   64      
+x_length            5.000E+06
+y_length            2.727E+05
+time_start          0.000   
+time_end            50000.000
+time_step           5.000   
+time_per_frame      20      
+
+// Parameters
+"f0"                2.128E-04
+"beta"              1.000E-11
+"kxx"               1.000E+00
+"kzz"               1.000E+00

@@ -118,7 +118,7 @@ public:
                     RAp.block(0,0,nrows,ncols+1).min(RAm.block(0,1,nrows,ncols+1))
                     );
             return (flux_1 + RAdjust * flux_A).block(0,0,nrows,ncols+1);
-        } else {ERROR_1;}
+        } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
     }
 };
 

@@ -39,7 +39,7 @@ public:
     void operator() (const StateType &var, StateType &dvar, float){
     #define rotate90(var, i, j, k) ( interp(interp(var[i], vattr[i].bc, j), k) )
         for (size_t i = 0; i < dvar.size(); i++) 
-            dvar[i] = _zero(var[i].rows(), var[i].cols());
+            dvar[i] = ZERO2(var[i].rows(), var[i].cols());
 
         wwind = integ(diff(var[0], 1), vattr[5].bc, -2) * dy / dx;
         phi = integ(var[2] * gp["T_"] / T0 * (1 + var[3]) / (1 + eps * gp["eta_"]), 
@@ -96,22 +96,22 @@ public:
     void set_boundary_conditions(){
         Boundary uwind, wwind, buoyancy, etaH2O, etaNH3, phi, RH;
 
-        uwind.left = uwind.right << Dirichlet | _zero(1, ncols);
-        uwind.bottom = uwind.top << Neumann | _zero(nrows + 1, 1);
-        wwind.left = wwind.right << Dirichlet | _zero(1, ncols + 1);
-        wwind.bottom << Neumann | _zero(nrows, 1);
-        wwind.top << Dirichlet | _zero(nrows, 1);
-        buoyancy.left = buoyancy.right << Dirichlet | _zero(1, ncols);
-        buoyancy.bottom << Neumann | _zero(nrows, 1);
-        buoyancy.top << Dirichlet | _zero(nrows, 1);
-        etaH2O.left = etaH2O.right << Neumann | _zero(1, ncols);
-        etaH2O.bottom << Dirichlet | gp["eta_H2O"].col(0).maxCoeff() + _zero(nrows, 1);
-        etaH2O.top << Neumann | _zero(nrows, 1);
-        etaNH3.left = etaNH3.right << Neumann | _zero(1, ncols);
-        etaNH3.bottom = etaNH3.top << Neumann | _zero(nrows, 1);
-        phi.left = phi.right << Dirichlet | _zero(1, ncols + 1);
-        phi.bottom << Dirichlet | _zero(nrows, 1);
-        phi.top << Neumann | _zero(nrows, 1);
+        uwind.left = uwind.right << Dirichlet | ZERO2(1, ncols);
+        uwind.bottom = uwind.top << Neumann | ZERO2(nrows + 1, 1);
+        wwind.left = wwind.right << Dirichlet | ZERO2(1, ncols + 1);
+        wwind.bottom << Neumann | ZERO2(nrows, 1);
+        wwind.top << Dirichlet | ZERO2(nrows, 1);
+        buoyancy.left = buoyancy.right << Dirichlet | ZERO2(1, ncols);
+        buoyancy.bottom << Neumann | ZERO2(nrows, 1);
+        buoyancy.top << Dirichlet | ZERO2(nrows, 1);
+        etaH2O.left = etaH2O.right << Neumann | ZERO2(1, ncols);
+        etaH2O.bottom << Dirichlet | gp["eta_H2O"].col(0).maxCoeff() + ZERO2(nrows, 1);
+        etaH2O.top << Neumann | ZERO2(nrows, 1);
+        etaNH3.left = etaNH3.right << Neumann | ZERO2(1, ncols);
+        etaNH3.bottom = etaNH3.top << Neumann | ZERO2(nrows, 1);
+        phi.left = phi.right << Dirichlet | ZERO2(1, ncols + 1);
+        phi.bottom << Dirichlet | ZERO2(nrows, 1);
+        phi.top << Neumann | ZERO2(nrows, 1);
 
         vattr.emplace_back("uwind",     1,  uwind);
         vattr.emplace_back("vwind",     1,  uwind);
@@ -126,23 +126,23 @@ public:
     void halo_update(StateType &dvar){
         for (size_t i = 0; i < dvar.size(); i++){
             if (dvar[i].size() == 0)
-                dvar[i] = _zero(var[i].rows(), var[i].cols());
+                dvar[i] = ZERO2(var[i].rows(), var[i].cols());
             if (dvar[i].rows() != var[i].rows() || dvar[i].cols() != var[i].cols()){
                 // raise error
                 std::cerr << "Error 1" << std::endl;
                 exit(-1);
             }
             if (vattr[i].bc.left.type == Dirichlet)
-                dvar[i].row(0) = _zero(1, var[i].cols());
+                dvar[i].row(0) = ZERO2(1, var[i].cols());
             if (vattr[i].bc.right.type == Dirichlet)
-                dvar[i].row(var[i].rows() - 1) = _zero(1, var[i].cols());
+                dvar[i].row(var[i].rows() - 1) = ZERO2(1, var[i].cols());
             if (vattr[i].bc.bottom.type == Dirichlet)
-                dvar[i].col(0) = _zero(var[i].rows(), 1);
+                dvar[i].col(0) = ZERO2(var[i].rows(), 1);
             if (vattr[i].bc.top.type == Dirichlet)
-                dvar[i].col(var[i].cols() - 1) = _zero(var[i].rows(), 1);
+                dvar[i].col(var[i].cols() - 1) = ZERO2(var[i].rows(), 1);
         }
     }
-    void ncWrite(float t){
+    void ncwrite(float t){
         //std::cout << "Now writing..." << std::endl;
         NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
         for (size_t i = 0; i < vattr.size(); i++){
