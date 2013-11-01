@@ -23,4 +23,7 @@ typedef std::vector<Grid> StateType;
 /* define constants */
 #define ZERO1(n) Eigen::ArrayXf::Zero(n)
 #define ZERO2(n,m) Eigen::ArrayXXf::Zero(n,m)
+
+/* define small functions */
+#define Min(a, b, c) ( a < b ? (a < c ? a : c) : (b < c ? b : c) )
 #endif

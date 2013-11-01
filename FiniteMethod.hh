@@ -3,7 +3,6 @@
 
 #include "Include.hh"
 #define MAXDIM 500
-#define Min(a, b, c) ( a < b ? (a < c ? a : c) : (b < c ? b : c) )
 #define D_order_1(var, i) ( var(i + 1) - var(i) )
 #define D_order_1_m(var, i) ( var(i) - var(i - 1) )
 #define D_order_2(var, i) ( (var(i + 1) - var(i - 1)) / 2. )
@@ -70,7 +69,7 @@ class CenteredDifference : public FiniteMethod{
 #define BUFFER Buffer.block(0, 0, var.rows(), var.cols())
 public:
     CenteredDifference(int _nrows = MAXDIM, int _ncols = MAXDIM) : FiniteMethod(_nrows, _ncols){}
-    Grid operator() (const Grid &var, const Boundary &varb, int axis){
+    Grid operator() (const Grid &var, const Halo &halo, int axis){
         if (axis == 1){
             BUFFER.row(0) = (D_bnd_low(var.row(0), varb.left) 
                     + D_order_1(var.row, 0)) / 2.;
