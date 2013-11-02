@@ -8,15 +8,15 @@
 #include <Eigen/Dense>
 #include "netcdf.hh"
 #include "Tools.hh"
-#include "Boundary.hh"
+#include "Halo.hh"
 #include "Include.hh"
 
 struct Attribute{
-    Attribute(std::string _name, int _type, Boundary _bc):
+    Attribute(std::string _name, int _type, Halo _bc):
         name(_name), type(_type), bc(_bc){}
     std::string name;
     int type;
-    Boundary bc;
+    Halo bc;
 };
 
 struct ncconfig{

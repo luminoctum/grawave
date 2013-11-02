@@ -59,7 +59,12 @@ public:
     #undef rotate90
 protected:
     void set_boundary_conditions(){
-        Boundary phi, uwind, vwind, tracer;
+        Halo phi, uwind, vwind, tracer;
+        phi.set_periodic();
+        uwins.set_periodic();
+        vwins.set_periodic();
+        tracer.set_periodic();
+        /*
         phi.left = phi.right << Neumann | ZERO2(1, ncols);
         phi.bottom = phi.top << Neumann | ZERO2(nrows, 1);
         uwind.left = uwind.right << Dirichlet | ZERO2(1, ncols);
@@ -68,6 +73,7 @@ protected:
         vwind.bottom = vwind.top << Dirichlet | ZERO2(nrows, 1);
         tracer.left = tracer.right << Neumann | ZERO2(1, ncols);
         tracer.bottom = tracer.top << Neumann | ZERO2(nrows, 1);
+        */
 
         vattr.emplace_back("phi", 0, phi);
         vattr.emplace_back("uwind", 1, uwind);
