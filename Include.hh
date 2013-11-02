@@ -2,6 +2,7 @@
 #define INCLUDE
 typedef Eigen::ArrayXXf Grid;
 typedef std::vector<Grid> StateType;
+
 /* define error messages */
 #define ALARM(message)  std::cout << message << std::endl 
 #define ASSERT_FILE_NOT_FOUND(AFILE) \
@@ -14,7 +15,15 @@ typedef std::vector<Grid> StateType;
         std::cerr << "variable \"" << AVAR << "\" out of range ..."<< std::endl; \
         std::cerr << "*****************" << std::endl; \
         assert(0) 
+
 /* define constants */
 #define ZERO1(n) Eigen::ArrayXf::Zero(n)
 #define ZERO2(n,m) Eigen::ArrayXXf::Zero(n,m)
+
+/* define small functions */
+#define MIN(a, b, c) ( a < b ? (a < c ? a : c) : (b < c ? b : c) )
+
+/* maximum dimension size */
+#define MAX_DIM 500
+
 #endif

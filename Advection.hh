@@ -2,43 +2,36 @@
 #define ADVECTION
 #include "FiniteMethod.hh"
 
-class Advection{
+class Zalesak{ 
 protected:
-    Interpolate interp2;
-    BiasedDifference diff;
-    int nrows, ncols;
-public:
-    Advection(){}
-    Advection(int _nrows, int _ncols) : 
-        nrows(_nrows), ncols(_ncols),
-        interp2(_nrows + 1, _ncols + 1, 2),
-        diff(_nrows + 1, _ncols + 1){}
-
-};
-
-class Zalesak : public Advection{
-protected:
-    Grid var_td, var_min, var_max,
-         flux_1, flux_h, flux_A, flux,
-         RAp, RAm, RAdjust;
+    Grid var_td, var_min, var_max, flux,
+         flux_1x, flux_1y, flux_hx, flux_hy,
+         flux_ax, flux_ay, RAdjustx, RAdjusty,
+         RApx, RApy, RAmx, RAmy;
+    Interpolate interp2, interph;
+    Difference diff;
     float eps;
+    int order;
 public:
     Zalesak(){}
-    Zalesak(int _nrows, int _ncols) : Advection(_nrows, _ncols), eps(1.E-6),
-        var_td(_nrows, _ncols), var_min(_nrows, _ncols), var_max(_nrows, _ncols),
-        flux_1(_nrows + 1, _ncols + 1), flux_h(_nrows + 1, _ncols + 1), 
-        flux_A(_nrows + 1, _ncols + 1), flux(_nrows, _ncols),
-        RAp(_nrows + 2, _ncols + 2), RAm(_nrows + 2, _ncols + 2), 
-        RAdjust(_nrows + 1, _ncols + 1){}
+    Zalesak(int _order) : eps(1.E-6), interp2(2), interph(_order), diff(1){}
 
-    Grid operator() (FiniteMethod &interph, const Grid &scale, 
-            const Grid &wind, const Grid &var, const Boundary &varb, int axis){
+    Grid operator() (const Grid &scale, const Grid &wind, const Grid &var, const Halo &hal, int axis){
+        // Boundary condition needs to be checked
+        int nrows = var.rows(), ncols = var.cols();
+        Grid dvar;
+
+        var_min.resize(nrows, ncols);
+        var_max.resize(nrows, ncols);
         if (axis == 1){
-            // Boundary condition not considered here
-            flux_1.block(0,0,nrows+1,ncols) = wind * interp2(wind, var, varb, axis);
-            var_td = var - scale * diff(flux_1.block(0,0,nrows+1,ncols), axis);
-            flux_h.block(0,0,nrows+1,ncols) = wind * interph(var, varb, axis);
-            flux_A.block(0,0,nrows+1,ncols) = (flux_h - flux_1).block(0,0,nrows+1,ncols);
+            dvar.resize(nrows + 1, ncols);
+            RAmx.resize(nrows + 2, ncols);
+            RApx.resize(nrows + 2, ncols);
+
+            flux_1x = wind * interp2.upwind(wind, var, hal, axis);
+            var_td = var - scale * diff(flux_1x, axis);
+            flux_hx = wind * interph(var, hal, axis);
+            flux_ax = flux_hx - flux_1x;
 
             for (size_t i = 0; i < nrows; i++){
                 if (i == 0){
@@ -58,29 +51,33 @@ public:
                         min(var_td.row(i)).min(var_td.row(i - 1)).min(var_td.row(i + 1));
                 }
             }
-            flux = flux_A.block(0,0,nrows,ncols).max(Grid::Zero(nrows, ncols)) 
-                - flux_A.block(1,0,nrows,ncols).min(Grid::Zero(nrows, ncols));
-            RAp.block(0,0,1,ncols) = Grid::Zero(1, ncols);
-            RAp.block(1,0,nrows,ncols) = (flux.abs() < eps).select(0, 
-                ((var_max - var_td) / (scale * flux)).min(Grid::Zero(nrows, ncols) + 1.));
-            RAp.block(nrows+1,0,1,ncols) = Grid::Zero(1, ncols);
-            flux = flux_A.block(1,0,nrows,ncols).max(Grid::Zero(nrows, ncols)) 
-                - flux_A.block(0,0,nrows,ncols).min(Grid::Zero(nrows, ncols));
-            RAm.block(0,0,1,ncols) = Grid::Zero(1, ncols);
-            RAm.block(1,0,nrows,ncols) = (flux.abs() < eps).select(0,
-                ((var_td - var_min) / (scale * flux)).min(Grid::Zero(nrows, ncols) + 1.));
-            RAm.block(nrows+1,0,1,ncols) = Grid::Zero(1, ncols);
+            flux = flux_ax.block(0,0,nrows,ncols).max(ZERO2(nrows, ncols)) 
+                - flux_ax.block(1,0,nrows,ncols).min(ZERO2(nrows, ncols));
+            RApx.block(0,0,1,ncols) = ZERO2(1, ncols);
+            RApx.block(1,0,nrows,ncols) = (flux.abs() < eps).select(0, 
+                ((var_max - var_td) / (scale * flux)).min(ZERO2(nrows, ncols) + 1.));
+            RApx.block(nrows+1,0,1,ncols) = ZERO2(1, ncols);
+            flux = flux_ax.block(1,0,nrows,ncols).max(ZERO2(nrows, ncols)) 
+                - flux_ax.block(0,0,nrows,ncols).min(ZERO2(nrows, ncols));
+            RAmx.block(0,0,1,ncols) = ZERO2(1, ncols);
+            RAmx.block(1,0,nrows,ncols) = (flux.abs() < eps).select(0,
+                ((var_td - var_min) / (scale * flux)).min(ZERO2(nrows, ncols) + 1.));
+            RAmx.block(nrows+1,0,1,ncols) = ZERO2(1, ncols);
 
-            RAdjust.block(0,0,nrows+1,ncols) = (flux_A.block(0,0,nrows+1,ncols) > 0).select(
-                    RAm.block(0,0,nrows+1,ncols).min(RAp.block(1,0,nrows+1,ncols)),
-                    RAp.block(0,0,nrows+1,ncols).min(RAm.block(1,0,nrows+1,ncols))
+            RAdjustx = (flux_ax > 0).select(
+                    RAmx.block(0,0,nrows+1,ncols).min(RApx.block(1,0,nrows+1,ncols)),
+                    RApx.block(0,0,nrows+1,ncols).min(RAmx.block(1,0,nrows+1,ncols))
                     );
-            return (flux_1 + RAdjust * flux_A).block(0,0,nrows+1,ncols);
+            dvar = flux_1x + RAdjustx * flux_ax;
         } else if (axis == 2){
-            flux_1.block(0,0,nrows,ncols+1) = wind * interp2(wind, var, varb, axis);
-            var_td = var - scale * diff(flux_1.block(0,0,nrows,ncols+1), axis);
-            flux_h.block(0,0,nrows,ncols+1) = wind * interph(var, varb, axis);
-            flux_A.block(0,0,nrows,ncols+1) = (flux_h - flux_1).block(0,0,nrows,ncols+1);
+            dvar.resize(nrows, ncols + 1);
+            RAmy.resize(nrows, ncols + 2);
+            RApy.resize(nrows, ncols + 2);
+
+            flux_1y = wind * interp2.upwind(wind, var, hal, axis);
+            var_td = var - scale * diff(flux_1y, axis);
+            flux_hy = wind * interph(var, hal, axis);
+            flux_ay = flux_hy - flux_1y;
 
             for (size_t i = 0; i < ncols; i++){
                 if (i == 0){
@@ -100,69 +97,71 @@ public:
                         min(var_td.col(i)).min(var_td.col(i - 1)).min(var_td.col(i + 1));
                 }
             }
-            flux = flux_A.block(0,0,nrows,ncols).max(Grid::Zero(nrows, ncols)) 
-                - flux_A.block(0,1,nrows,ncols).min(Grid::Zero(nrows, ncols));
-            RAp.block(0,0,nrows,1) = Grid::Zero(nrows, 1);
-            RAp.block(0,1,nrows,ncols) = (flux.abs() < eps).select(0, 
-                ((var_max - var_td) / (scale * flux)).min(Grid::Zero(nrows, ncols) + 1.));
-            RAp.block(0,ncols+1,nrows,1) = Grid::Zero(nrows, 1);
-            flux = flux_A.block(0,1,nrows,ncols).max(Grid::Zero(nrows, ncols)) 
-                - flux_A.block(0,0,nrows,ncols).min(Grid::Zero(nrows, ncols));
-            RAm.block(0,0,nrows,1) = Grid::Zero(nrows, 1);
-            RAm.block(0,1,nrows,ncols) = (flux.abs() < eps).select(0,
-                ((var_td - var_min) / (scale * flux)).min(Grid::Zero(nrows, ncols) + 1.));
-            RAm.block(0,ncols+1,nrows,1) = Grid::Zero(nrows, 1);
+            flux = flux_ay.block(0,0,nrows,ncols).max(ZERO2(nrows, ncols)) 
+                - flux_ay.block(0,1,nrows,ncols).min(ZERO2(nrows, ncols));
+            RApy.block(0,0,nrows,1) = ZERO2(nrows, 1);
+            RApy.block(0,1,nrows,ncols) = (flux.abs() < eps).select(0, 
+                ((var_max - var_td) / (scale * flux)).min(ZERO2(nrows, ncols) + 1.));
+            RApy.block(0,ncols+1,nrows,1) = ZERO2(nrows, 1);
+            flux = flux_ay.block(0,1,nrows,ncols).max(ZERO2(nrows, ncols)) 
+                - flux_ay.block(0,0,nrows,ncols).min(ZERO2(nrows, ncols));
+            RAmy.block(0,0,nrows,1) = ZERO2(nrows, 1);
+            RAmy.block(0,1,nrows,ncols) = (flux.abs() < eps).select(0,
+                ((var_td - var_min) / (scale * flux)).min(ZERO2(nrows, ncols) + 1.));
+            RAmy.block(0,ncols+1,nrows,1) = ZERO2(nrows, 1);
 
-            RAdjust.block(0,0,nrows,ncols+1) = (flux_A.block(0,0,nrows,ncols+1) > 0).select(
-                    RAm.block(0,0,nrows,ncols+1).min(RAp.block(0,1,nrows,ncols+1)),
-                    RAp.block(0,0,nrows,ncols+1).min(RAm.block(0,1,nrows,ncols+1))
+            RAdjusty = (flux_ay > 0).select(
+                    RAmy.block(0,0,nrows,ncols+1).min(RApy.block(0,1,nrows,ncols+1)),
+                    RApy.block(0,0,nrows,ncols+1).min(RAmy.block(0,1,nrows,ncols+1))
                     );
-            return (flux_1 + RAdjust * flux_A).block(0,0,nrows,ncols+1);
+            dvar = flux_1y + RAdjusty * flux_ay;
         } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+
+        return dvar;
     }
 };
 
-class Arakawa : public Advection{
+class Arakawa{
 protected:
-    Grid Jpp, Jpx, Jxp, Buffer;
-    CenteredDifference Diff;
+    Grid Jpp, Jpx, Jxp, buffer;
+    Difference diff;
 public:
     Arakawa(){}
-    Arakawa(int _nrows, int _ncols) : Advection(_nrows, _ncols),
-        Jpp(_nrows, _ncols), Jpx(_nrows, _ncols), Jxp(_nrows, _ncols),
-        Buffer(_nrows, _ncols){};
+    Arakawa(int _nrows, int _ncols, int _order) : diff(1),
+        Jpp(_nrows, _ncols), Jpx(_nrows, _ncols), Jxp(_nrows, _ncols){};
 
-    Grid operator() (const Grid &psi, const Boundary &psib, const Grid &var, const Boundary &varb){
-        Jpp = Diff(psi, psib, 1) * Diff(var, varb, 2)
-            - Diff(psi, psib, 2) * Diff(var, varb, 1);
-        Jpx = revolve(psi * Diff(var, varb, 2), -1)
-            - revolve(psi * Diff(var, varb, 2), +1)
-            - revolve(psi * Diff(var, varb, 1), -2)
-            + revolve(psi * Diff(var, varb, 1), +2);
-        Jxp = revolve(var * Diff(psi, psib, 1), -2)
-            - revolve(var * Diff(psi, psib, 1), +2)
-            - revolve(var * Diff(psi, psib, 2), -1)
-            + revolve(var * Diff(psi, psib, 2), +1);
+    Grid operator() (const Grid &psi, const Halo &psib, const Grid &var, const Halo &varb){
+        Jpp = diff(psi, psib, 1) * diff(var, varb, 2)
+            - diff(psi, psib, 2) * diff(var, varb, 1);
+        Jpx = revolve(psi * diff(var, varb, 2), -1)
+            - revolve(psi * diff(var, varb, 2), +1)
+            - revolve(psi * diff(var, varb, 1), -2)
+            + revolve(psi * diff(var, varb, 1), +2);
+        Jxp = revolve(var * diff(psi, psib, 1), -2)
+            - revolve(var * diff(psi, psib, 1), +2)
+            - revolve(var * diff(psi, psib, 2), -1)
+            + revolve(var * diff(psi, psib, 2), +1);
         return ((Jpp + Jxp + Jxp) / 3.);
     }
 protected:
     Grid revolve(Grid var, int axis){
+        buffer.resize(var.rows(), var.cols());
         if (axis == 1){
             for (size_t i = 0; i < var.rows(); i++)
-                Buffer.row(i) = var.row((i - 1 + var.rows()) % var.rows());
+                buffer.row(i) = var.row((i - 1 + var.rows()) % var.rows());
         } else if (axis == -1){
             for (size_t i = 0; i < var.rows(); i++)
-                Buffer.row(i) = var.row((i + 1) % var.rows());
+                buffer.row(i) = var.row((i + 1) % var.rows());
         } else if (axis == 2){
             for (size_t i = 0; i < var.cols(); i++)
-                Buffer.col(i) = var.col((i - 1 + var.cols()) % var.cols());
+                buffer.col(i) = var.col((i - 1 + var.cols()) % var.cols());
         } else if (axis == -2){
             for (size_t i = 0; i < var.cols(); i++)
-                Buffer.col(i) = var.col((i + 1) % var.cols());
+                buffer.col(i) = var.col((i + 1) % var.cols());
         } else{
             //raise error
         }
-        return Buffer;
+        return buffer;
     };
 };
 
