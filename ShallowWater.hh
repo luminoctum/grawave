@@ -14,8 +14,7 @@ protected:
 public:
     ShallowWater(std::string control_file): 
         OdeSystem(control_file), 
-        diff(1), interp(2), dissip(4),
-        phix(nrows + 1, ncols), phiy(nrows, ncols + 1){
+        diff(1), interp(2), dissip(4){
         Grid f(nrows, ncols);
         for (size_t i = 0; i < nrows; i++)
             for (size_t j = 0; j < ncols; j++)
@@ -27,27 +26,32 @@ public:
         phix = interp(var[0], attr[0].hal, 1);
         phiy = interp(var[0], attr[0].hal, 2);
         dvar[0] = - diff(var[1], 1) / dx - diff(var[2], 2) / dy;
-        dvar[1] = - 0.5 * diff(var[0] * var[0], attr[0].hal, 1) / dx
+        dvar[1] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 1) / dx;
+        /*
             + interp(
                 gp["f"] * interp(var[2], 2)
                 - diff(var[1] * var[1] / phix, 1) / dx
                 - diff(var[2] * rotate90(var, 1, 2) / phiy, 2) / dy, 
                 attr[1].hal, 1);
-        dvar[2] = - 0.5 * diff(var[0] * var[0], attr[0].hal, 2) / dy
+                */
+        dvar[2] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 2) / dy;
+        /*
             + interp(
                 - gp["f"] * interp(var[1], 1)
                 - diff(var[1] * rotate90(var, 2, 1) / phix, 1) / dx
                 - diff(var[2] * var[2] / phiy, 2) / dy,
                 attr[2].hal, 2);
+                */
         dvar[3] = - diff(var[1] * interp(var[3], attr[3].hal, 1) / phix, 1) / dx
             - diff(var[2] * interp(var[3], attr[3].hal, 2) / phiy, 2) / dy;
+        //ALARM(dvar[1]);
         //dvar[3] = - diff(adv.upwind(var[1], var[3], 1) / phix, 1) / dx
         //    - diff(adv.upwind(var[2], var[3], 2) / phiy, 2) / dy;
         /*
         for (size_t i = 0; i < 4; i++){
             dvar[i] += 0.03 / dt * (dissip(var[i], 1) + dissip(var[i], 2));
         }*/
-        check_dimension(dvar);
+        //check_dimension(dvar);
     }
     #undef rotate90
     void set_boundary_conditions(){
@@ -62,7 +66,6 @@ public:
         attr.emplace_back("vwind", 2, vwind);
         attr.emplace_back("tracer", 0, tracer);
     }
-    /*
 protected:
     void ncwrite(float t){
         //std::cout << "Now writing..." << std::endl;
@@ -76,6 +79,6 @@ protected:
         }
         dataFile.get_var("time")->put_rec(&t, ncfile.current);
         ncfile.current++;
-    }*/
+    }
 };
 #endif

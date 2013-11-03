@@ -25,9 +25,13 @@ int main(){
 		sys.observe(t);
         // somehow, do_step do not update other variables in sys
         // and you should use sys.var explicitly
+        //cout << sys.var[1].row(0) << endl;
 		stepper.do_step(sys, sys.var, t, sys.step());
+        //cout << sys.var[2].row(200) << endl;
 		sys.update(t);
         sys.halo_update();
+        //cout << sys.attr[1].hal.left << endl;
+        //BREAKPOINT;
 		//sys.debug();
 	}
 	sys.observe(t);

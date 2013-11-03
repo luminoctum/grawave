@@ -20,6 +20,7 @@ typedef std::vector<Grid> State;
         std::cerr << "dimension mismatch for \"" << AVAR1 << "\", \"" << AVAR2 << std::endl; \
         std::cerr << "*****************" << std::endl; \
         assert(0) 
+#define BREAKPOINT assert(0)
 
 /* define constants */
 #define ZERO1(n) Eigen::ArrayXf::Zero(n)

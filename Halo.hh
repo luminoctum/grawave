@@ -113,7 +113,7 @@ public:
         }
         switch (t.type){
             case Neumann:
-                top = var.col(var.cols() - 1) - b.value;
+                top = var.col(var.cols() - 1) - t.value;
                 break;
             case Dirichlet:
                 top = t.value;
@@ -125,6 +125,14 @@ public:
                 top = ZERO2(var.rows(), 1);
                 break;
         }
+    }
+    Halo operator*(const Halo &hal){
+        Halo result;
+        result.left = this->left * hal.left;
+        result.right= this->right * hal.right;
+        result.bottom= this->bottom * hal.bottom;
+        result.top= this->top * hal.top;
+        return result;
     }
 protected:
     Boundary l, r, b, t;
