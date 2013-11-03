@@ -25,9 +25,9 @@ int main(){
           1,2,3,-4,5,
           1,-2,3,4,5;
     Halo bc;
-    bc.set_left_right(Dirichlet, a.row(0));
-    bc.set_bottom_top(Dirichlet, a.col(0));
-    //bc.set_periodic();
+    //bc.set_left_right(Dirichlet, a.row(0));
+    //bc.set_bottom_top(Dirichlet, a.col(0));
+    bc.set_periodic();
     bc.update(a);
     Zalesak zadjust(6);
     Difference diff(1); 
@@ -37,6 +37,8 @@ int main(){
 
     //cout << bc << endl;
     cout << a << endl << endl;
+    cout << interp(a, bc, 0) << endl;
+            /*
     cout << interp.upwind(uwind, a, bc, 1) << endl << endl;
     //cout << uwind << endl << endl;
     //cout << diff(a, bc, 2) << endl << endl;
@@ -50,6 +52,7 @@ int main(){
     cout << c << endl << endl;
     cout << d << endl << endl;
     cout << flux << endl << endl;
+    */
 
     /*
     cout << a.col(0) << endl;

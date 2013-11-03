@@ -20,6 +20,11 @@ typedef std::vector<Grid> State;
         std::cerr << "dimension mismatch for \"" << AVAR1 << "\", \"" << AVAR2 << std::endl; \
         std::cerr << "*****************" << std::endl; \
         assert(0) 
+#define ASSERT_NOT_SUPPORTED \
+        std::cerr << "***** ERROR *****" << std::endl; \
+        std::cerr << "method not supported!" << std::endl; \
+        std::cerr << "*****************" << std::endl; \
+        assert(0) 
 #define BREAKPOINT assert(0)
 
 /* define constants */

@@ -110,6 +110,36 @@ public:
         } 
         return dvar;
     }
+    Grid periodic(const Grid &var, int axis){
+        // currently, it only supports periodic boundary condition
+        int nrows = var.rows(), ncols = var.cols();
+        Grid dvar;
+        if (order == 2){
+            dvar.resize(nrows, ncols);
+            if (axis == 1){
+                dvar = (*this)(var, axis);
+                dvar.row(0) = (var.row(1) - var.row(nrows - 1)) / 2.;
+                dvar.row(nrows - 1) = (var.row(0) - var.row(nrows - 2)) / 2.;
+            } else if (axis == 2){
+                dvar = (*this)(var, axis);
+                dvar.col(0) = (var.col(1) - var.col(ncols - 1)) / 2.;
+                dvar.col(ncols - 1) = (var.col(0) - var.col(ncols - 2)) / 2.;
+            } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+        } else if (order == 1){
+            if (axis == 1){
+                dvar.resize(nrows + 1, ncols);
+                dvar.block(1, 0, nrows - 1, ncols) = (*this)(var, axis);
+                dvar.row(0) = var.row(0) - var.row(nrows - 1);
+                dvar.row(nrows) = var.row(0) - var.row(nrows - 1);
+            } else if (axis == 2){
+                dvar.resize(nrows, ncols + 1);
+                dvar.block(0, 1, nrows, ncols - 1) = (*this)(var, axis);
+                dvar.col(0) = var.col(0) - var.col(ncols - 1);
+                dvar.col(ncols) = var.col(0) - var.col(ncols - 1);
+            } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+        } 
+        return dvar;
+    }
 };
 
 class DifferenceN{
@@ -181,7 +211,7 @@ class Interpolate{
     /* Make an interpolation to half grid */
 protected:
     int order;
-    Grid wsignx, wsigny;
+    Grid wsignx, wsigny, buffer;
 public:
     Interpolate(){}
     Interpolate(int _order) : order(_order){
@@ -216,7 +246,21 @@ public:
             dvar.block(0, 1, nrows, ncols - 1) = (*this)(var, axis);
             dvar.col(0) = (var.col(0) + hal.bottom) / 2.;
             dvar.col(ncols) = (var.col(ncols - 1) + hal.top) / 2.;
-        } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+        } else if (axis == 0){
+            buffer.resize(nrows + 2, ncols + 2);
+            buffer.block(1, 1, nrows, ncols) = var;
+            buffer.block(0, 1, 1, ncols) = hal.left;
+            buffer.block(nrows + 1, 1, 1, ncols) = hal.right;
+            buffer.block(1, 0, nrows, 1) = hal.bottom;
+            buffer.block(1, ncols + 1, nrows, 1) = hal.top;
+            buffer(0, 0) = (buffer(0, 1) + buffer(1, 0)) / 2.;
+            buffer(0, ncols + 1) = (buffer(0, ncols) + buffer(1, ncols + 1)) / 2.;
+            buffer(nrows + 1, 0) = (buffer(nrows, 0) + buffer(nrows + 1, 1)) / 2.;
+            buffer(nrows + 1, ncols + 1) = (buffer(nrows + 1, ncols) + buffer(nrows, ncols + 1)) / 2.;
+
+            dvar = (*this)((*this)(buffer, 1), 2);
+        }
+        else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
         return dvar;
     }
     Grid upwind(const Grid &wind, const Grid &var, int axis){

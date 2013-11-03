@@ -191,8 +191,7 @@ protected:
 		ncfile.current++;
 	}
     
-public:
-//protected:
+protected:
 	std::string name;
 	int nrows, ncols;
 	float xlen, ylen;

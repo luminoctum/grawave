@@ -6,7 +6,7 @@
 
 class ShallowWater : public OdeSystem{
 protected:
-    Grid phix, phiy, buffer;
+    Grid phix, phiy, reynolds, buffer;
     Difference diff;
     DifferenceN dissip;
     Interpolate interp;
@@ -15,34 +15,30 @@ public:
     ShallowWater(std::string control_file): 
         OdeSystem(control_file), 
         diff(1), interp(2), dissip(4){
-        Grid f(nrows, ncols);
-        for (size_t i = 0; i < nrows; i++)
-            for (size_t j = 0; j < ncols; j++)
+        Grid f(nrows + 1, ncols + 1);
+        for (size_t i = 0; i < nrows + 1; i++)
+            for (size_t j = 0; j < ncols + 1; j++)
                 f(i, j) = sp["f0"] + sp["beta"] * (j * dy - ylen / 2.);
         gp["f"] = f;
     }
-    #define rotate90(var, i, j)  interp(interp(var[i], attr[i].hal, j), i) 
     void operator() (const State &var, State &dvar, float){
+        #define rotate90(var, i, j)  interp(interp(var[i], attr[i].hal, j), i) 
         halo_update(var);
         phix = interp(var[0], attr[0].hal, 1);
         phiy = interp(var[0], attr[0].hal, 2);
+        reynolds = interp(var[1], attr[1].hal, 2) * interp(var[2], attr[2].hal, 1) 
+            / interp(var[0], attr[0].hal, 0);
         dvar[0] = - diff(var[1], 1) / dx - diff(var[2], 2) / dy;
-        dvar[1] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 1) / dx;
-            /*
-            + interp(
-                gp["f"] * interp(var[2], 2)
-                - diff(var[1] * var[1] / phix, 1) / dx
-                - diff(var[2] * rotate90(var, 1, 2) / phiy, 2) / dy, 
-                attr[1].hal, 1);
-                */
-        dvar[2] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 2) / dy;
-            /*
-            + interp(
-                - gp["f"] * interp(var[1], 1)
-                - diff(var[1] * rotate90(var, 2, 1) / phix, 1) / dx
-                - diff(var[2] * var[2] / phiy, 2) / dy,
-                attr[2].hal, 2);
-                */
+        dvar[1] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 1) / dx
+            + sp["f0"] * rotate90(var, 2, 1)
+            - diff.periodic(interp(var[1], 1) * interp(var[1], 1) / var[0], 1) / dx
+            //- diff(interp(var[1], attr[1].hal, 2) * interp(var[2], attr[2].hal, 1) / phixy, 2) / dy;
+            - diff(reynolds, 2) / dy;
+        dvar[2] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 2) / dy
+            - sp["f0"] * rotate90(var, 1, 2)
+            - diff.periodic(interp(var[2], 2) * interp(var[2], 2) / var[0], 2) / dy
+            //- diff(interp(var[1], attr[1].hal, 2) * interp(var[2], attr[2].hal, 1) / phixy, 1) / dx;
+            - diff(reynolds, 1) / dx;
         dvar[3] = - diff(var[1] * interp(var[3], attr[3].hal, 1) / phix, 1) / dx
             - diff(var[2] * interp(var[3], attr[3].hal, 2) / phiy, 2) / dy;
         //dvar[3] = - diff(adv.upwind(var[1], var[3], 1) / phix, 1) / dx
@@ -52,8 +48,8 @@ public:
             dvar[i] += 0.03 / dt * (dissip(var[i], 1) + dissip(var[i], 2));
         }*/
         check_dimension(dvar);
+        #undef rotate90
     }
-    #undef rotate90
     void set_boundary_conditions(){
         Halo phi, uwind, vwind, tracer;
         phi.set_periodic();
