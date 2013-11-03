@@ -1,7 +1,7 @@
 #ifndef INCLUDE 
 #define INCLUDE
 typedef Eigen::ArrayXXf Grid;
-typedef std::vector<Grid> StateType;
+typedef std::vector<Grid> State;
 
 /* define error messages */
 #define ALARM(message)  std::cout << message << std::endl 

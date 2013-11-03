@@ -60,7 +60,7 @@ public:
 	}
 
 	/* define differential equations */
-	virtual void operator() (const StateType &, StateType &, float t) = 0;
+	virtual void operator() (const State &, State &, float t) = 0;
 	virtual void update(float){}
     virtual void set_boundary_conditions(){}
 	virtual void observe(float t){
@@ -185,7 +185,7 @@ protected:
 	ads::Timer timer;
 
 public:
-	StateType var;
+	State var;
 };
 
 #endif

@@ -36,7 +36,7 @@ public:
         ptol = PREF * gp["mass"];
         H2O.heat = Grid::Zero(nrows, ncols);
     }
-    void operator() (const StateType &var, StateType &dvar, float){
+    void operator() (const State &var, State &dvar, float){
     #define rotate90(var, i, j, k) ( interp(interp(var[i], vattr[i].bc, j), k) )
         for (size_t i = 0; i < dvar.size(); i++) 
             dvar[i] = ZERO2(var[i].rows(), var[i].cols());
@@ -123,7 +123,7 @@ public:
         vattr.emplace_back("RH_H2O",    0,  RH);
         vattr.emplace_back("RH_NH3",    0,  RH);
     }
-    void halo_update(StateType &dvar){
+    void halo_update(State &dvar){
         for (size_t i = 0; i < dvar.size(); i++){
             if (dvar[i].size() == 0)
                 dvar[i] = ZERO2(var[i].rows(), var[i].cols());

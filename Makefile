@@ -5,11 +5,11 @@ CC = g++
 CLIB = -L/usr/lib64
 CINC = -I/usr/include -I. -I $(EIGEN_DIR) -I $(ODEINT_DIR) -I $(STLIB_DIR)
 CFLAG = -O2 -msse2 -std=c++0x -fopenmp
-MAIN = Test
+MAIN = Main
 EXE = run
 ADDONS = Include.hh Halo.hh FiniteMethod.hh Advection.hh
 
-$(EXE): Test.o 
+$(EXE): $(MAIN).o 
 	$(CC) $(CFLAG) $(CLIB) -lnetcdf_c++ -o $(EXE) $(<)
 $(MAIN).o: $(MAIN).cc $(ADDONS)
 	$(CC) $(CFLAG) $(CINC) -c $(<)

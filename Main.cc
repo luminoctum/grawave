@@ -20,8 +20,8 @@ int main(){
 		<< setw(15) << left << "Real Time(s):" << endl;
 	/* stepper 
      * */
-	runge_kutta4<StateType> stepper;
-    //adams_bashforth<4, StateType> stepper;
+	runge_kutta4<State> stepper;
+    //adams_bashforth<4, State> stepper;
 	float t;
 	for (t = sys.start(); t < sys.end(); t += sys.step()){
 		sys.observe(t);
