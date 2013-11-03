@@ -6,7 +6,7 @@ num_of_grids_in_y   100
 x_length            4.000E+07
 y_length            1.000E+07
 time_start          0.000   
-time_end            180000.000
+time_end            360000.000
 time_step           600.000 
 time_per_frame      1       
 

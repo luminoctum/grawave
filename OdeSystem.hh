@@ -174,7 +174,6 @@ protected:
 
     /* write to nc file */
 	virtual void ncwrite(float t){
-		//std::cout << "Now writing..." << std::endl;
 		NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
 		for (size_t i = 0; i < attr.size(); i++)
 			dataFile.get_var(attr[i].name.c_str())->put_rec(&var[i](0, 0), ncfile.current);
@@ -182,8 +181,7 @@ protected:
 		ncfile.current++;
 	}
     
-//protected:
-public:
+protected:
 	std::string name;
 	int nrows, ncols;
 	float xlen, ylen;
