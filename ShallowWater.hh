@@ -23,6 +23,7 @@ public:
     }
     #define rotate90(var, i, j)  interp(interp(var[i], attr[i].hal, j), i) 
     void operator() (const State &var, State &dvar, float){
+        halo_update(var);
         phix = interp(var[0], attr[0].hal, 1);
         phiy = interp(var[0], attr[0].hal, 2);
         dvar[0] = - diff(var[1], 1) / dx - diff(var[2], 2) / dy;

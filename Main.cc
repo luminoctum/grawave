@@ -23,12 +23,11 @@ int main(){
 	float t;
 	for (t = sys.start(); t < sys.end(); t += sys.step()){
 		sys.observe(t);
-        // somehow, do_step do not update other variables in sys
+        // somehow, inside the loop of do_step, do not update other variables in sys
         // and you should use sys.var explicitly
 		stepper.do_step(sys, sys.var, t, sys.step());
 		sys.update(t);
         sys.halo_update();
-		//sys.debug();
 	}
 	sys.observe(t);
 }

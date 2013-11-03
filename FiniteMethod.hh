@@ -106,7 +106,7 @@ public:
                 dvar.block(0, 1, nrows, ncols - 1) = (*this)(var, axis);
                 dvar.col(0) = var.col(0) - hal.bottom;
                 dvar.col(ncols) = hal.top - var.col(ncols - 1);
-            } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+            } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
         } 
         return dvar;
     }

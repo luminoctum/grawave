@@ -61,11 +61,19 @@ public:
 
 	/* define differential equations */
 	virtual void operator() (const State &, State &, float t) = 0;
+    /* define boundary conditions for variables, needed to update halo */
     virtual void set_boundary_conditions(){}
+    /* update diagnostic variables */
 	virtual void update(float){}
+    /* used to update halo when all the calculations are finished */
     virtual void halo_update(){
         for (size_t i = 0; i < attr.size(); i++) attr[i].hal.update(var[i]);
     }
+    /* used to update halo inside runge-kutta steps */
+    virtual void halo_update(const State &var){
+        for (size_t i = 0; i < attr.size(); i++) attr[i].hal.update(var[i]);
+    }
+    /* print out running information on screen */
 	virtual void observe(float t){
 		long ostep = std::floor(t / dt + 0.5);
 		if (ostep % frame != 0) return;
@@ -78,10 +86,12 @@ public:
 			<< std::setw(15) << std::left << std::setprecision(5)
 			<< timer.toc() << std::endl;
 	}
+    /* read initial values from nc file */
 	void init_variables(){
 		for (size_t i = 0; i < attr.size(); i++) 
             var.push_back(gp[attr[i].name]);
 	}
+    /* in do_step, diagnostic variables are not updated, set their tendency to zero */
     void check_dimension(State &dvar){
         for (size_t i = 0; i < dvar.size(); i++){
             if (dvar[i].size() == 0) dvar[i] = ZERO2(var[i].rows(), var[i].cols());
@@ -181,7 +191,8 @@ protected:
 		ncfile.current++;
 	}
     
-protected:
+public:
+//protected:
 	std::string name;
 	int nrows, ncols;
 	float xlen, ylen;
