@@ -7,7 +7,7 @@ CINC = -I/usr/include -I. -I $(EIGEN_DIR) -I $(ODEINT_DIR) -I $(STLIB_DIR)
 CFLAG = -O2 -msse2 -std=c++0x -fopenmp
 MAIN = Main
 EXE = run
-ADDONS = Include.hh Halo.hh FiniteMethod.hh Advection.hh
+ADDONS = Include.hh Halo.hh FiniteMethod.hh Advection.hh ShallowWater.hh
 
 $(EXE): $(MAIN).o 
 	$(CC) $(CFLAG) $(CLIB) -lnetcdf_c++ -o $(EXE) $(<)

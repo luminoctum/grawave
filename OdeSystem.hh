@@ -12,11 +12,11 @@
 #include "Include.hh"
 
 struct Attribute{
-    Attribute(std::string _name, int _type, Halo _bc):
-        name(_name), type(_type), bc(_bc){}
+    Attribute(std::string _name, int _type, Halo _hal):
+        name(_name), type(_type), hal(_hal){}
     std::string name;
     int type;
-    Halo bc;
+    Halo hal;
 };
 
 struct ncconfig{
@@ -48,9 +48,9 @@ public:
 			<< "Time step: " << other.dt << " s" << std::endl
 			<< "Times per frame: " << other.frame << std::endl;
 		os << "Boundary conditions: " << std::endl;
-		for (size_t i = 0; i < other.vattr.size(); i++){
-			os << "--- " << other.vattr[i].name << " ---" << std::endl;
-			os << other.vattr[i].bc << std::endl;
+		for (size_t i = 0; i < other.attr.size(); i++){
+			os << "--- " << other.attr[i].name << " ---" << std::endl;
+			os << other.attr[i].hal << std::endl;
 		}
 		os << "Parameters: " << std::endl;
 		for (std::map<std::string, float>::const_iterator it = other.sp.begin(); 
@@ -61,8 +61,11 @@ public:
 
 	/* define differential equations */
 	virtual void operator() (const State &, State &, float t) = 0;
-	virtual void update(float){}
     virtual void set_boundary_conditions(){}
+	virtual void update(float){}
+    virtual void halo_update(){
+        for (size_t i = 0; i < attr.size(); i++) attr[i].hal.update(var[i]);
+    }
 	virtual void observe(float t){
 		long ostep = std::floor(t / dt + 0.5);
 		if (ostep % frame != 0) return;
@@ -76,9 +79,17 @@ public:
 			<< timer.toc() << std::endl;
 	}
 	void init_variables(){
-		for (size_t i = 0; i < vattr.size(); i++) 
-            var.push_back(gp[vattr[i].name]);
+		for (size_t i = 0; i < attr.size(); i++) 
+            var.push_back(gp[attr[i].name]);
 	}
+    void checkdim(State &dvar){
+        for (size_t i = 0; i < dvar.size(); i++){
+            if (dvar[i].size() == 0) dvar[i] = ZERO2(var[i].rows(), var[i].cols());
+            if (dvar[i].rows() != var[i].rows() || dvar[i].cols() != var[i].cols()){
+                ASSERT_DIMENSION_MISMATCH("dvar", "var");
+            }
+        }
+    }
 
 	int rows(){ return nrows; }
 	int cols(){ return ncols; }
@@ -165,8 +176,8 @@ protected:
 	virtual void ncwrite(float t){
 		//std::cout << "Now writing..." << std::endl;
 		NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
-		for (size_t i = 0; i < vattr.size(); i++)
-			dataFile.get_var(vattr[i].name.c_str())->put_rec(&var[i](0, 0), ncfile.current);
+		for (size_t i = 0; i < attr.size(); i++)
+			dataFile.get_var(attr[i].name.c_str())->put_rec(&var[i](0, 0), ncfile.current);
 		dataFile.get_var("time")->put_rec(&t, ncfile.current);
 		ncfile.current++;
 	}
@@ -179,7 +190,7 @@ protected:
 	float tbegin, tend, dt;
 	int frame;
 	ncconfig ncfile;
-    std::vector<Attribute> vattr;
+    std::vector<Attribute> attr;
 	std::map<std::string, float> sp; // scalar parameter
 	std::map<std::string, Grid> gp; // grid parameter
 	ads::Timer timer;

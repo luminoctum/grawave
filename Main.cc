@@ -7,9 +7,7 @@ using namespace std;
 using namespace boost::numeric::odeint;
 
 int main(){
-	/* system instance
-     * */
-	//ColumnHeating sys("control.in");
+	/* system instance */
 	ShallowWater sys("control.in"); 
     sys.set_boundary_conditions();
 	sys.init_variables();
@@ -18,8 +16,7 @@ int main(){
 		<< setw(8) << left << "steps:" 
 		<< setw(15) << left << "Model Time(s):"
 		<< setw(15) << left << "Real Time(s):" << endl;
-	/* stepper 
-     * */
+	/* stepper */
 	runge_kutta4<State> stepper;
     //adams_bashforth<4, State> stepper;
 	float t;
@@ -29,6 +26,7 @@ int main(){
         // and you should use sys.var explicitly
 		stepper.do_step(sys, sys.var, t, sys.step());
 		sys.update(t);
+        sys.halo_update();
 		//sys.debug();
 	}
 	sys.observe(t);

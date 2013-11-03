@@ -37,32 +37,32 @@ public:
         H2O.heat = Grid::Zero(nrows, ncols);
     }
     void operator() (const State &var, State &dvar, float){
-    #define rotate90(var, i, j, k) ( interp(interp(var[i], vattr[i].bc, j), k) )
+    #define rotate90(var, i, j, k) ( interp(interp(var[i], attr[i].bc, j), k) )
         for (size_t i = 0; i < dvar.size(); i++) 
             dvar[i] = ZERO2(var[i].rows(), var[i].cols());
 
-        wwind = integ(diff(var[0], 1), vattr[5].bc, -2) * dy / dx;
+        wwind = integ(diff(var[0], 1), attr[5].bc, -2) * dy / dx;
         phi = integ(var[2] * gp["T_"] / T0 * (1 + var[3]) / (1 + eps * gp["eta_"]), 
-                vattr[5].bc, 2) * dy
+                attr[5].bc, 2) * dy
             + integ(grav * gp["T_"] / T0 
                 * (1 - eps) / (1 + eps * var[3]) 
                 * (var[3] - gp["eta_"]) / (1 + eps * gp["eta_"]), 
-                vattr[6].bc, 2) * dy;
-        dvar[0] = sp["f0"] * var[1] - diff(gp["mass"] * interp(phi, 2), vattr[2].bc, 1) / dx
+                attr[6].bc, 2) * dy;
+        dvar[0] = sp["f0"] * var[1] - diff(gp["mass"] * interp(phi, 2), attr[2].bc, 1) / dx
             + interp( 
                 - diff(var[0] * var[0] / gp["massx"], 1) / dx 
                 - diff(wwind * rotate90(var, 0, 2, 1) / gp["massy"], 2) / dy,
-                vattr[0].bc, 1);
+                attr[0].bc, 1);
         dvar[1] = - sp["f0"] * var[0]
             + interp( 
                 - diff(var[0] * var[1] / gp["massx"], 1) / dx 
                 - diff(wwind * rotate90(var, 1, 2, 1) / gp["massy"], 2) / dy,
-                vattr[1].bc, 1);
+                attr[1].bc, 1);
         dvar[2] = - 1 / gp["mass"] * interp(gp["N2"] * wwind, 2) + H2O.heat;
         for (size_t i = 2; i < 5; i++){
             dvar[i] += - 1 / gp["mass"] * (
-                diff(zadjust(interp, dt / (dx * gp["mass"]), var[0], var[i], vattr[i].bc, 1), 1) / dx
-                + diff(zadjust(interp, dt / (dx * gp["mass"]), wwind, var[i], vattr[i].bc, 2), 2) / dy
+                diff(zadjust(interp, dt / (dx * gp["mass"]), var[0], var[i], attr[i].bc, 1), 1) / dx
+                + diff(zadjust(interp, dt / (dx * gp["mass"]), wwind, var[i], attr[i].bc, 2), 2) / dy
                 );
         }
         for (size_t i = 0; i < 3; i++) 
@@ -74,13 +74,13 @@ public:
     #undef rotate90
     }
     void update(float t){
-        var[5] = integ(diff(var[0], 1), vattr[5].bc, -2) * dy / dx;
+        var[5] = integ(diff(var[0], 1), attr[5].bc, -2) * dy / dx;
         var[6] = integ(var[2] * gp["T_"] / T0 * (1 + var[3]) / (1 + eps * gp["eta_"]), 
-                    vattr[5].bc, 2) * dy
+                    attr[5].bc, 2) * dy
                + integ(grav * gp["T_"] / T0 
                     * (1 - eps) / (1 + eps * var[3]) 
                     * (var[3] - gp["eta_"]) / (1 + eps * gp["eta_"]), 
-                    vattr[6].bc, 2) * dy;
+                    attr[6].bc, 2) * dy;
         // condense ammonia
         svp = NH3.sat_vapor_pressure(gp["T_"] * (1. + var[2] / grav));
         var[8] = var[4] / (1 + var[4]) * ptol / svp;
@@ -113,15 +113,15 @@ public:
         phi.bottom << Dirichlet | ZERO2(nrows, 1);
         phi.top << Neumann | ZERO2(nrows, 1);
 
-        vattr.emplace_back("uwind",     1,  uwind);
-        vattr.emplace_back("vwind",     1,  uwind);
-        vattr.emplace_back("buoyancy",  0,  buoyancy);
-        vattr.emplace_back("eta_H2O",   0,  etaH2O);
-        vattr.emplace_back("eta_NH3",   0,  etaNH3);
-        vattr.emplace_back("wwind",     2,  wwind);
-        vattr.emplace_back("phi",       0,  phi);
-        vattr.emplace_back("RH_H2O",    0,  RH);
-        vattr.emplace_back("RH_NH3",    0,  RH);
+        attr.emplace_back("uwind",     1,  uwind);
+        attr.emplace_back("vwind",     1,  uwind);
+        attr.emplace_back("buoyancy",  0,  buoyancy);
+        attr.emplace_back("eta_H2O",   0,  etaH2O);
+        attr.emplace_back("eta_NH3",   0,  etaNH3);
+        attr.emplace_back("wwind",     2,  wwind);
+        attr.emplace_back("phi",       0,  phi);
+        attr.emplace_back("RH_H2O",    0,  RH);
+        attr.emplace_back("RH_NH3",    0,  RH);
     }
     void halo_update(State &dvar){
         for (size_t i = 0; i < dvar.size(); i++){
@@ -132,24 +132,24 @@ public:
                 std::cerr << "Error 1" << std::endl;
                 exit(-1);
             }
-            if (vattr[i].bc.left.type == Dirichlet)
+            if (attr[i].bc.left.type == Dirichlet)
                 dvar[i].row(0) = ZERO2(1, var[i].cols());
-            if (vattr[i].bc.right.type == Dirichlet)
+            if (attr[i].bc.right.type == Dirichlet)
                 dvar[i].row(var[i].rows() - 1) = ZERO2(1, var[i].cols());
-            if (vattr[i].bc.bottom.type == Dirichlet)
+            if (attr[i].bc.bottom.type == Dirichlet)
                 dvar[i].col(0) = ZERO2(var[i].rows(), 1);
-            if (vattr[i].bc.top.type == Dirichlet)
+            if (attr[i].bc.top.type == Dirichlet)
                 dvar[i].col(var[i].cols() - 1) = ZERO2(var[i].rows(), 1);
         }
     }
     void ncwrite(float t){
         //std::cout << "Now writing..." << std::endl;
         NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
-        for (size_t i = 0; i < vattr.size(); i++){
+        for (size_t i = 0; i < attr.size(); i++){
             if (i <= 1) Buffer = var[i] / gp["massx"];
             else if (i == 5) Buffer = var[i] / gp["massy"];
             else Buffer = var[i];
-            dataFile.get_var(vattr[i].name.c_str())->put_rec(&Buffer(0, 0), ncfile.current);
+            dataFile.get_var(attr[i].name.c_str())->put_rec(&Buffer(0, 0), ncfile.current);
         }
         dataFile.get_var("time")->put_rec(&t, ncfile.current);
         ncfile.current++;

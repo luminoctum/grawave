@@ -68,7 +68,6 @@ public:
     void set_top(BoundaryType type, Grid value){ t << type | value;}
     void set_top(BoundaryType type){ t << type;}
     void set_periodic(){r = l = b = t << Periodic;}
-
     void update(const Grid &var){
         switch (l.type){
             case Neumann:
