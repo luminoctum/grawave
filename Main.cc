@@ -11,6 +11,7 @@ int main(){
 	ShallowWater sys("control.in"); 
     sys.set_boundary_conditions();
 	sys.init_variables();
+    sys.halo_update();
     //sys.set_NH3_mixr(4.E-4);
 	cout << sys
 		<< setw(8) << left << "steps:" 

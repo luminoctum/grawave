@@ -82,7 +82,7 @@ public:
 		for (size_t i = 0; i < attr.size(); i++) 
             var.push_back(gp[attr[i].name]);
 	}
-    void checkdim(State &dvar){
+    void check_dimension(State &dvar){
         for (size_t i = 0; i < dvar.size(); i++){
             if (dvar[i].size() == 0) dvar[i] = ZERO2(var[i].rows(), var[i].cols());
             if (dvar[i].rows() != var[i].rows() || dvar[i].cols() != var[i].cols()){

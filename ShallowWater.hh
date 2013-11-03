@@ -47,7 +47,7 @@ public:
         for (size_t i = 0; i < 4; i++){
             dvar[i] += 0.03 / dt * (dissip(var[i], 1) + dissip(var[i], 2));
         }*/
-        checkdim(dvar);
+        check_dimension(dvar);
     }
     #undef rotate90
     void set_boundary_conditions(){
@@ -62,6 +62,7 @@ public:
         attr.emplace_back("vwind", 2, vwind);
         attr.emplace_back("tracer", 0, tracer);
     }
+    /*
 protected:
     void ncwrite(float t){
         //std::cout << "Now writing..." << std::endl;
@@ -75,6 +76,6 @@ protected:
         }
         dataFile.get_var("time")->put_rec(&t, ncfile.current);
         ncfile.current++;
-    }
+    }*/
 };
 #endif
