@@ -28,7 +28,6 @@ public:
     }
     void operator() (const State &var, State &dvar, float){
         #define rotate90(var, i, j)  interp(interp(var[i], attr[i].hal, j), i) 
-        halo_update(var);
         phix = interp(var[0], attr[0].hal, 1);
         phiy = interp(var[0], attr[0].hal, 2);
         reynolds = interp(var[1], attr[1].hal, 2) * interp(var[2], attr[2].hal, 1) 
@@ -49,7 +48,7 @@ public:
         for (size_t i = 0; i < 4; i++){
             dvar[i] += 0.03 / dt * (dissip(var[i], attr[i].hal, 1) + dissip(var[i], attr[i].hal, 2));
         };
-        check_dimension(dvar);
+        clean_up(dvar);
         #undef rotate90
     }
     void set_boundary_conditions(){
@@ -60,27 +59,24 @@ public:
         vwind.set_periodic();
         tracer.set_periodic();
         */
-        phi.set_left_right(Periodic);
-        uwind.set_left_right(Periodic);
-        vwind.set_left_right(Periodic);
-        tracer.set_left_right(Periodic);
-        phi.set_bottom_top(Neumann, ZERO2(nrows, 1));
-        uwind.set_bottom_top(Neumann, ZERO2(nrows + 1, 1));
-        vwind.set_bottom_top(Dirichlet, ZERO2(nrows, 1));
+        phi.set_row(Periodic);
+        phi.set_col(Neumann);
+        uwind.set_row(Periodic);
+        uwind.set_row_ghost();
+        uwind.set_col(Neumann);
+        vwind.set_row(Periodic);
+        vwind.set_col(Dirichlet);
+        vwind.set_col_ghost();
+        tracer.set_col(Periodic);
+        tracer.set_row(Periodic);
 
         attr.emplace_back("phi", 0, phi);
         attr.emplace_back("uwind", 1, uwind);
         attr.emplace_back("vwind", 2, vwind);
         attr.emplace_back("tracer", 0, tracer);
     }
-    /* dirty code */
-    void update(float){
-        var[2].col(0) = ZERO2(nrows, 1);
-        var[2].col(ncols) = ZERO2(nrows, 1);
-    }
 protected:
     void ncwrite(float t){
-        //std::cout << "Now writing..." << std::endl;
         NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
         for (size_t i = 0; i < attr.size(); i++){
             buffer = (

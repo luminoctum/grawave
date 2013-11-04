@@ -69,10 +69,6 @@ public:
     virtual void halo_update(){
         for (size_t i = 0; i < attr.size(); i++) attr[i].hal.update(var[i]);
     }
-    /* used to update halo inside runge-kutta steps */
-    virtual void halo_update(const State &var){
-        for (size_t i = 0; i < attr.size(); i++) attr[i].hal.update(var[i]);
-    }
     /* print out running information on screen */
 	virtual void observe(float t){
 		long ostep = std::floor(t / dt + 0.5);
@@ -91,12 +87,33 @@ public:
 		for (size_t i = 0; i < attr.size(); i++) 
             var.push_back(gp[attr[i].name]);
 	}
-    /* in do_step, diagnostic variables are not updated, set their tendency to zero */
-    void check_dimension(State &dvar){
+    /* This is the final step in do_step, it does several jobs
+     * 1) diagnostic variables is not initialized in do_step, initialize it here
+     * 2) check the dimension for dvar and var
+     * 3) adjust the value for ghost points (only periodic)
+     * */
+    void clean_up(State &dvar){
+        int nrows, ncols;
+        Grid buffer;
         for (size_t i = 0; i < dvar.size(); i++){
-            if (dvar[i].size() == 0) dvar[i] = ZERO2(var[i].rows(), var[i].cols());
-            if (dvar[i].rows() != var[i].rows() || dvar[i].cols() != var[i].cols()){
+            nrows = var[i].rows(); ncols = var[i].cols();
+            if (dvar[i].size() == 0) dvar[i] = ZERO2(nrows, ncols);
+            if (dvar[i].rows() != nrows || dvar[i].cols() != ncols){
                 ASSERT_DIMENSION_MISMATCH("dvar", "var");
+            }
+            if (attr[i].hal.row_ghost()){
+                if (attr[i].hal.row_periodic()) 
+                    bufferx = (dvar[i].row(0) + dvar[i].row(nrows - 1)) / 2.;
+                else bufferx = ZERO2(1, ncols);
+                dvar[i].row(0) = bufferx;
+                dvar[i].row(nrows - 1) = bufferx;
+            }
+            if (attr[i].hal.col_ghost()){
+                if (attr[i].hal.col_periodic()) 
+                    buffery = (dvar[i].col(0) + dvar[i].col(ncols - 1)) / 2.;
+                else buffery = ZERO2(nrows, 1);
+                dvar[i].col(0) = buffery;
+                dvar[i].col(ncols - 1) = buffery;
             }
         }
     }
@@ -192,6 +209,7 @@ protected:
 	}
     
 protected:
+    Grid bufferx, buffery;
 	std::string name;
 	int nrows, ncols;
 	float xlen, ylen;
