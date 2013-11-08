@@ -3,11 +3,6 @@
 
 #include "Include.hh"
 #include "Halo.hh"
-#define DIFF(order, var, i) ( \
-        order == 1 ? var(i + 1) - var(i) : ( \
-        /* order == 2 */ \
-            static_cast<Grid>(0.5 * (var(i + 1) - var(i - 1)))) \
-        )
 #define MIDDLE(order, var, i) ( \
         order == 1 ? - 0.5 * (var(i + 1) - var(i)) : ( \
         order == 2 ? \
@@ -41,133 +36,98 @@
  * axis = -1 : left
  */
 
+template <int order>
 class Difference{
-    /* Calculate 1st order finite difference */
-protected:
-    int order;
+    /* Calculate finite difference */
 public:
-    Difference(){}
-    Difference(int _order) : order(_order){
-        if (_order != 1 && _order != 2) {
-            ASSERT_VARIABLE_OUT_OF_RANGE("order");
-        }
-    }
-    Grid operator() (const Grid &var, int axis){
+    Grid x(const Grid &var){
         int nrows = var.rows(), ncols = var.cols();
         Grid dvar;
         if (order == 2){
             dvar.resize(nrows, ncols);
-            if (axis == 1){
-                dvar.row(0) = DIFF(1, var.row, 0);
-                for (size_t i = 1; i < nrows - 1; i++)
-                    dvar.row(i) = DIFF(2, var.row, i);
-                dvar.row(nrows - 1) = DIFF(1, var.row, nrows - 2);
-            } else if (axis == 2){
-                dvar.col(0) = DIFF(1, var.col, 0);
-                for (size_t i = 1; i < var.cols() - 1; i++)
-                    dvar.col(i) = DIFF(2, var.col, i);
-                dvar.col(ncols - 1) = DIFF(1, var.col, ncols - 2);
-            } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+            dvar.row(0) = var.row(1) - var.row(0);
+            for (size_t i = 1; i < nrows - 1; i++)
+                dvar.row(i) = 0.5 * (var.row(i + 1) - var.row(i - 1));
+            dvar.row(nrows - 1) = var.row(nrows - 1) - var.row(nrows - 2);
         } else if (order == 1){
-            if (axis == 1){
-                dvar.resize(nrows - 1, ncols);
-                for (size_t i = 0; i < nrows - 1; i++)
-                    dvar.row(i) = DIFF(1, var.row, i);
-            } else if (axis == 2){
-                dvar.resize(nrows, ncols - 1);
-                for (size_t i = 0; i < ncols - 1; i++)
-                    dvar.col(i) = DIFF(1, var.col, i);
-            } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+            dvar.resize(nrows - 1, ncols);
+            for (size_t i = 0; i < nrows - 1; i++)
+                dvar.row(i) = var.row(i + 1) - var.row(i);
         } 
         return dvar;
     }
-    Grid operator() (const Grid &var, const Halo &hal, int axis){
+    Grid y(const Grid &var){
         int nrows = var.rows(), ncols = var.cols();
         Grid dvar;
         if (order == 2){
             dvar.resize(nrows, ncols);
-            if (axis == 1){
-                dvar = (*this)(var, axis);
-                dvar.row(0) = (var.row(1) - hal.left) / 2.;
-                dvar.row(nrows - 1) = (hal.right - var.row(nrows - 2)) / 2.;
-            } else if (axis == 2){
-                dvar = (*this)(var, axis);
-                dvar.col(0) = (var.col(1) - hal.bottom) / 2.;
-                dvar.col(ncols - 1) = (hal.top - var.col(ncols - 2)) / 2.;
-            } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+            dvar.col(0) = var.col(1) - var.col(0);
+            for (size_t i = 1; i < var.cols() - 1; i++)
+                dvar.col(i) = 0.5 * (var.col(i + 1) - var.col(i - 1));
+            dvar.col(ncols - 1) = var.col(ncols - 1) - var.col(ncols - 2);
         } else if (order == 1){
-            if (axis == 1){
-                dvar.resize(nrows + 1, ncols);
-                dvar.block(1, 0, nrows - 1, ncols) = (*this)(var, axis);
-                dvar.row(0) = var.row(0) - hal.left;
-                dvar.row(nrows) = hal.right - var.row(nrows - 1);
-            } else if (axis == 2){
-                dvar.resize(nrows, ncols + 1);
-                dvar.block(0, 1, nrows, ncols - 1) = (*this)(var, axis);
-                dvar.col(0) = var.col(0) - hal.bottom;
-                dvar.col(ncols) = hal.top - var.col(ncols - 1);
-            } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+            dvar.resize(nrows, ncols - 1);
+            for (size_t i = 0; i < ncols - 1; i++)
+                dvar.col(i) = var.col(i + 1) - var.col(i);
         } 
         return dvar;
     }
-    Grid periodic(const Grid &var, int axis){
-        // currently, it only supports periodic boundary condition
+    Grid x(const Grid &var, const Halo &hal){
         int nrows = var.rows(), ncols = var.cols();
         Grid dvar;
         if (order == 2){
             dvar.resize(nrows, ncols);
-            if (axis == 1){
-                dvar = (*this)(var, axis);
-                dvar.row(0) = (var.row(1) - var.row(nrows - 1)) / 2.;
-                dvar.row(nrows - 1) = (var.row(0) - var.row(nrows - 2)) / 2.;
-            } else if (axis == 2){
-                dvar = (*this)(var, axis);
-                dvar.col(0) = (var.col(1) - var.col(ncols - 1)) / 2.;
-                dvar.col(ncols - 1) = (var.col(0) - var.col(ncols - 2)) / 2.;
-            } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+            dvar = this->x(var);
+            dvar.row(0) = (var.row(1) - hal.left) / 2.;
+            dvar.row(nrows - 1) = (hal.right - var.row(nrows - 2)) / 2.;
         } else if (order == 1){
-            if (axis == 1){
-                dvar.resize(nrows + 1, ncols);
-                dvar.block(1, 0, nrows - 1, ncols) = (*this)(var, axis);
-                dvar.row(0) = var.row(0) - var.row(nrows - 1);
-                dvar.row(nrows) = var.row(0) - var.row(nrows - 1);
-            } else if (axis == 2){
-                dvar.resize(nrows, ncols + 1);
-                dvar.block(0, 1, nrows, ncols - 1) = (*this)(var, axis);
-                dvar.col(0) = var.col(0) - var.col(ncols - 1);
-                dvar.col(ncols) = var.col(0) - var.col(ncols - 1);
-            } else{ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+            dvar.resize(nrows + 1, ncols);
+            dvar.block(1, 0, nrows - 1, ncols) = this->x(var);
+            dvar.row(0) = var.row(0) - hal.left;
+            dvar.row(nrows) = hal.right - var.row(nrows - 1);
+        } 
+        return dvar;
+    }
+    Grid y(const Grid &var, const Halo &hal){
+        int nrows = var.rows(), ncols = var.cols();
+        Grid dvar;
+        if (order == 2){
+            dvar.resize(nrows, ncols);
+            dvar = this->y(var);
+            dvar.col(0) = (var.col(1) - hal.bottom) / 2.;
+            dvar.col(ncols - 1) = (hal.top - var.col(ncols - 2)) / 2.;
+        } else if (order == 1){
+            dvar.resize(nrows, ncols + 1);
+            dvar.block(0, 1, nrows, ncols - 1) = this->y(var);
+            dvar.col(0) = var.col(0) - hal.bottom;
+            dvar.col(ncols) = hal.top - var.col(ncols - 1);
         } 
         return dvar;
     }
 };
 
+template <int order>
 class DifferenceN{
     /* calculate higher order difference */
-protected:
-    int order;
 public:
-    DifferenceN(){}
-    DifferenceN(int _order) : order(_order){
-        if (_order != 2 && _order != 4 && _order != 6){
-            ASSERT_VARIABLE_OUT_OF_RANGE("order");
-        }
-    }
-    Grid operator() (const Grid &var, const Halo &hal, int axis){
+    Grid x(const Grid &var, const Halo &hal){
         int nrows = var.rows(), ncols = var.cols();
         Grid dvar;
         dvar.resize(nrows, ncols);
-        if (axis == 1){
-            dvar.row(0) = var.row(1) - 2 * var.row(0) + hal.left;
-            for (size_t i = 1; i < nrows - 1; i++)
-                dvar.row(i) = DIFFN(2*MIN(i, nrows-1-i, order/2), var.row, i);
-            dvar.row(nrows - 1) = var.row(nrows - 2) - 2 * var.row(nrows - 1) + hal.right;
-        } else if (axis == 2){
-            dvar.col(0) = var.col(1) - 2 * var.col(0) + hal.bottom;
-            for (size_t i = 1; i < ncols - 1; i++)
-                dvar.col(i) = DIFFN(2*MIN(i, ncols-1-i, order/2), var.col, i);
-            dvar.col(ncols - 1) = var.col(ncols - 2) - 2 * var.col(ncols - 1) + hal.top;
-        } else {ASSERT_VARIABLE_OUT_OF_RANGE("axis");}
+        dvar.row(0) = var.row(1) - 2 * var.row(0) + hal.left;
+        for (size_t i = 1; i < nrows - 1; i++)
+            dvar.row(i) = DIFFN(2*MIN(i, nrows-1-i, order/2), var.row, i);
+        dvar.row(nrows - 1) = var.row(nrows - 2) - 2 * var.row(nrows - 1) + hal.right;
+        return dvar;
+    }
+    Grid y(const Grid &var, const Halo &hal){
+        int nrows = var.rows(), ncols = var.cols();
+        Grid dvar;
+        dvar.resize(nrows, ncols);
+        dvar.col(0) = var.col(1) - 2 * var.col(0) + hal.bottom;
+        for (size_t i = 1; i < ncols - 1; i++)
+            dvar.col(i) = DIFFN(2*MIN(i, ncols-1-i, order/2), var.col, i);
+        dvar.col(ncols - 1) = var.col(ncols - 2) - 2 * var.col(ncols - 1) + hal.top;
         return dvar;
     }
 };

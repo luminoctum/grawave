@@ -2,20 +2,19 @@
 #define SHALLOWWATER
 #include "OdeSystem.hh"
 #include "FiniteMethod.hh"
-#include "Advection.hh"
+//#include "Advection.hh"
 
 class ShallowWater : public OdeSystem{
 protected:
     Grid phix, phiy, reynolds, buffer;
-    Difference diff;
-    DifferenceN dissip;
+    Difference<1> diff;
+    DifferenceN<4> dissip;
     Interpolate interp;
-    Zalesak aflux;
 
 public:
     ShallowWater(std::string control_file): 
         OdeSystem(control_file), 
-        diff(1), interp(2), dissip(4), aflux(6){
+        interp(2){
         Grid fx(nrows + 1, ncols);
         Grid fy(nrows, ncols + 1);
         for (size_t i = 0; i < nrows + 1; i++)
@@ -33,22 +32,22 @@ public:
         phiy = interp(var[0], attr[0].hal, 2);
         reynolds = interp(var[1], attr[1].hal, 2) * interp(var[2], attr[2].hal, 1) 
             / interp(var[0], attr[0].hal, 0);
-        dvar[0] = - diff(var[1], 1) / dx - diff(var[2], 2) / dy;
-        dvar[1] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 1) / dx
-            + gp["fx"] * rotate90(var, 2, 1)
-            - diff.periodic(interp(var[1], 1) * interp(var[1], 1) / var[0], 1) / dx
-            - diff(reynolds, 2) / dy;
-        dvar[2] = - 0.5 * diff(var[0] * var[0], attr[0].hal * attr[0].hal, 2) / dy
-            - gp["fy"] * rotate90(var, 1, 2)
-            - diff.periodic(interp(var[2], 2) * interp(var[2], 2) / var[0], 2) / dy
-            - diff(reynolds, 1) / dx;
-        dvar[3] = - diff(var[1] * interp(var[3], attr[3].hal, 1) / phix, 1) / dx
-            - diff(var[2] * interp(var[3], attr[3].hal, 2) / phiy, 2) / dy;
+        dvar[0] = - diff.x(var[1]) / dx - diff.y(var[2]) / dy;
+        dvar[1] = - 0.5 * diff.x(var[0] * var[0], attr[0].hal * attr[0].hal) / dx
+            + gp["fx"] * rotate90(var, 2, 1);
+            //- diff.x(interp(var[1], 1) * interp(var[1], 1) / var[0]) / dx
+            //- diff.y(reynolds) / dy;
+        dvar[2] = - 0.5 * diff.y(var[0] * var[0], attr[0].hal * attr[0].hal) / dy
+            - gp["fy"] * rotate90(var, 1, 2);
+            //- diff.y(interp(var[2], 2) * interp(var[2], 2) / var[0]) / dy
+            //- diff.x(reynolds) / dx;
+        dvar[3] = - diff.x(var[1] * interp(var[3], attr[3].hal, 1) / phix) / dx
+            - diff.y(var[2] * interp(var[3], attr[3].hal, 2) / phiy) / dy;
         //dvar[3] = - diff(aflux(dt / dx, var[1] / phix, var[3], attr[3].hal, 1), 1) / dx
         //    - diff(aflux(dt / dx, var[2] / phiy, var[3], attr[3].hal, 2), 2) / dy;
-        for (size_t i = 0; i < 4; i++){
-            dvar[i] += 0.03 / dt * (dissip(var[i], attr[i].hal, 1) + dissip(var[i], attr[i].hal, 2));
-        };
+        //for (size_t i = 0; i < 4; i++){
+        //    dvar[i] += 0.03 / dt * (dissip(var[i], attr[i].hal, 1) + dissip(var[i], attr[i].hal, 2));
+        //};
         clean_up(dvar);
         #undef rotate90
     }
@@ -86,19 +85,6 @@ public:
         attr.emplace_back("uwind", 1, uwind);
         attr.emplace_back("vwind", 2, vwind);
         attr.emplace_back("tracer", 0, tracer);
-    }
-protected:
-    void ncwrite(float t){
-        NcFile dataFile(ncfile.fname.c_str(),NcFile::Write);
-        for (size_t i = 0; i < attr.size(); i++){
-            buffer = (
-                i == 0 ? var[0] : (
-                attr[i].type == 0 ? var[i] / var[0] : (
-                var[i] / interp(var[0], attr[0].hal, attr[i].type))));
-            dataFile.get_var(attr[i].name.c_str())->put_rec(&buffer(0, 0), ncfile.current);
-        }
-        dataFile.get_var("time")->put_rec(&t, ncfile.current);
-        ncfile.current++;
     }
 };
 #endif
