@@ -26,7 +26,7 @@ struct ncconfig{
 
 class OdeSystem{
 public:
-	OdeSystem(std::string control_file){
+	OdeSystem(std::string control_file = "control.in"){
 		timer.tic();
 		load_domain(control_file);
 		load_parameter(control_file);

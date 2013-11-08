@@ -8,7 +8,7 @@ using namespace boost::numeric::odeint;
 
 int main(){
 	/* system instance */
-	ShallowWater sys("control.in"); 
+	ShallowWater sys;
     sys.set_boundary_conditions();
 	sys.init_variables();
     sys.halo_update();
