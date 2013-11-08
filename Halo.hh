@@ -68,7 +68,8 @@ public:
     void set_bottom(BoundaryType type){ b << type;}
     void set_top(BoundaryType type, Grid value){ t << type | value;}
     void set_top(BoundaryType type){ t << type;}
-    void set_periodic(){r = l = b = t << Periodic;}
+    void set_all(BoundaryType type, Grid value){r = l = b = t << type | value;}
+    void set_all(BoundaryType type){r = l = b = t << type;}
 
     void set_row_ghost() {l.ghost = true; r.ghost = true;}
     void set_col_ghost() {b.ghost = true; t.ghost = true;}

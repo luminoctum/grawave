@@ -10,11 +10,12 @@ protected:
     Difference diff;
     DifferenceN dissip;
     Interpolate interp;
+    Zalesak aflux;
 
 public:
     ShallowWater(std::string control_file): 
         OdeSystem(control_file), 
-        diff(1), interp(2), dissip(4){
+        diff(1), interp(2), dissip(4), aflux(6){
         Grid fx(nrows + 1, ncols);
         Grid fy(nrows, ncols + 1);
         for (size_t i = 0; i < nrows + 1; i++)
@@ -43,8 +44,8 @@ public:
             - diff(reynolds, 1) / dx;
         dvar[3] = - diff(var[1] * interp(var[3], attr[3].hal, 1) / phix, 1) / dx
             - diff(var[2] * interp(var[3], attr[3].hal, 2) / phiy, 2) / dy;
-        //dvar[3] = - diff(adv.upwind(var[1], var[3], 1) / phix, 1) / dx
-        //    - diff(adv.upwind(var[2], var[3], 2) / phiy, 2) / dy;
+        //dvar[3] = - diff(aflux(dt / dx, var[1] / phix, var[3], attr[3].hal, 1), 1) / dx
+        //    - diff(aflux(dt / dx, var[2] / phiy, var[3], attr[3].hal, 2), 2) / dy;
         for (size_t i = 0; i < 4; i++){
             dvar[i] += 0.03 / dt * (dissip(var[i], attr[i].hal, 1) + dissip(var[i], attr[i].hal, 2));
         };
@@ -53,12 +54,13 @@ public:
     }
     void set_boundary_conditions(){
         Halo phi, uwind, vwind, tracer;
-        /*
-        phi.set_periodic();
-        uwind.set_periodic();
-        vwind.set_periodic();
-        tracer.set_periodic();
+        /* double periodic
+        phi.set_all(Periodic);
+        uwind.set_all(Periodic);
+        vwind.set_all(Periodic);
+        tracer.set_all(Periodic);
         */
+        /* channel
         phi.set_row(Periodic);
         phi.set_col(Neumann);
         uwind.set_row(Periodic);
@@ -69,6 +71,16 @@ public:
         vwind.set_col_ghost();
         tracer.set_col(Periodic);
         tracer.set_row(Periodic);
+        */
+        /* box */
+        phi.set_all(Dirichlet);
+        tracer.set_all(Dirichlet);
+        uwind.set_row(Dirichlet);
+        //uwind.set_row_ghost();
+        uwind.set_col(Neumann);
+        vwind.set_row(Neumann);
+        vwind.set_col(Dirichlet);
+        //vwind.set_col_ghost();
 
         attr.emplace_back("phi", 0, phi);
         attr.emplace_back("uwind", 1, uwind);
