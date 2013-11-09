@@ -8,6 +8,7 @@ class ShallowWater : public OdeSystem{
 protected:
     Grid phix, phiy, reynolds, buffer;
     Difference<1> diff;
+    Difference<2> diff2;
     DifferenceN<4> del2;
     Interpolate<2> half;
 
@@ -33,7 +34,7 @@ public:
         vwind.set_all(Periodic);
         tracer.set_all(Periodic);
         */
-        /* channel
+        /* channel */
         phi.set_row(Periodic);
         phi.set_col(Neumann);
         uwind.set_row(Periodic);
@@ -44,8 +45,7 @@ public:
         vwind.set_col_ghost();
         tracer.set_col(Periodic);
         tracer.set_row(Periodic);
-        */
-        /* box */
+        /* box
         phi.set_all(Dirichlet);
         tracer.set_all(Dirichlet);
         uwind.set_row(Dirichlet);
@@ -54,6 +54,7 @@ public:
         vwind.set_row(Neumann);
         vwind.set_col(Dirichlet);
         //vwind.set_col_ghost();
+        */
 
         attr.emplace_back("phi", 0, phi);
         attr.emplace_back("uwind", 1, uwind);
@@ -67,13 +68,13 @@ public:
             / half.quad(var[0], attr[0].hal);
         dvar[0] = - diff.x(var[1]) / dx - diff.y(var[2]) / dy;
         dvar[1] = - 0.5 * diff.x(var[0] * var[0], attr[0].hal * attr[0].hal) / dx
-            + gp["fx"] * half.y(half.x(var[2], attr[2].hal));
-            //- diff.x(interp(var[1], 1) * interp(var[1], 1) / var[0]) / dx
-            //- diff.y(reynolds) / dy;
+            + gp["fx"] * half.y(half.x(var[2], attr[2].hal))
+            - diff2.x(var[1] * var[1] / half.x(var[0], attr[0].hal)) / dx
+            - diff.y(reynolds) / dy;
         dvar[2] = - 0.5 * diff.y(var[0] * var[0], attr[0].hal * attr[0].hal) / dy
-            - gp["fy"] * half.x(half.y(var[1], attr[1].hal));
-            //- diff.y(interp(var[2], 2) * interp(var[2], 2) / var[0]) / dy
-            //- diff.x(reynolds) / dx;
+            - gp["fy"] * half.x(half.y(var[1], attr[1].hal))
+            - diff2.y(var[2] * var[2] / half.y(var[0], attr[0].hal)) / dy
+            - diff.x(reynolds) / dx;
         dvar[3] = - diff.x(var[1] * half.x(var[3], attr[3].hal) / phix) / dx
             - diff.y(var[2] * half.y(var[3], attr[3].hal) / phiy) / dy;
         for (size_t i = 0; i < 4; i++){
