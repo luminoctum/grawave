@@ -2,7 +2,7 @@
 #define SHALLOWWATER
 #include "OdeSystem.hh"
 #include "FiniteMethod.hh"
-//#include "Advection.hh"
+#include "Advection.hh"
 
 class ShallowWater : public OdeSystem{
 protected:
@@ -11,6 +11,7 @@ protected:
     Difference<2> diff2;
     DifferenceN<4> del2;
     Interpolate<2> half;
+    Zalesak<4, float> zadv;
 
 public:
     ShallowWater() : OdeSystem(){
